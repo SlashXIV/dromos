@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="activity_type_walk">Walk</string>
+    <string name="activity_type_run">Run</string>
+
+    <string name="unit_km">%1$s km</string>
+    <string name="unit_pace">%1$s /km</string>
+</resources>
