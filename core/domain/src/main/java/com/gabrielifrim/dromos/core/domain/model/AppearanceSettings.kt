@@ -10,4 +10,5 @@ package com.gabrielifrim.dromos.core.domain.model
 data class AppearanceSettings(
     val paletteId: String? = null,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
+    val motion: MotionPreference = MotionPreference.EXPRESSIVE,
 )

@@ -6,7 +6,9 @@ import com.gabrielifrim.dromos.core.domain.model.Activity
 import com.gabrielifrim.dromos.core.domain.model.ActivityStatus
 import com.gabrielifrim.dromos.core.domain.model.ActivityType
 import com.gabrielifrim.dromos.core.domain.model.AppearanceSettings
+import com.gabrielifrim.dromos.core.domain.model.GeoPoint
 import com.gabrielifrim.dromos.core.domain.model.LocationSample
+import com.gabrielifrim.dromos.core.domain.model.MotionPreference
 import com.gabrielifrim.dromos.core.domain.model.MapPreferences
 import com.gabrielifrim.dromos.core.domain.model.ThemeMode
 import com.gabrielifrim.dromos.core.domain.model.TrackPoint
@@ -57,6 +59,7 @@ class TrackingEngineTest {
         override val appearance: Flow<AppearanceSettings> = MutableStateFlow(AppearanceSettings())
         override suspend fun setPalette(paletteId: String) = Unit
         override suspend fun setThemeMode(mode: ThemeMode) = Unit
+        override suspend fun setMotion(motion: MotionPreference) = Unit
         override val tracking: Flow<TrackingPreferences> = prefs
         override suspend fun setAutoPause(enabled: Boolean) { prefs.value = TrackingPreferences(enabled) }
         override suspend fun setBatteryPromptDismissed(dismissed: Boolean) = Unit
@@ -83,9 +86,9 @@ class TrackingEngineTest {
             activities[activityId] = activities.getValue(activityId).withTotals(totals)
         }
 
-        override suspend fun finishActivity(activityId: Long, endedAt: Instant, totals: TrackTotals) {
+        override suspend fun finishActivity(activityId: Long, endedAt: Instant, totals: TrackTotals, preview: List<GeoPoint>) {
             activities[activityId] = activities.getValue(activityId).withTotals(totals)
-                .copy(status = ActivityStatus.FINISHED, endedAt = endedAt)
+                .copy(status = ActivityStatus.FINISHED, endedAt = endedAt, preview = preview)
         }
 
         private fun Activity.withTotals(t: TrackTotals) = copy(
@@ -138,6 +141,8 @@ class TrackingEngineTest {
         assertThat(saved.distanceMeters).isWithin(10.0).of(357.0)
         assertThat(saved.movingDuration).isEqualTo(Duration.ofSeconds(120))
         assertThat(repo.points.getValue(1L)).hasSize(120)
+        // Ligne droite : l'aperçu se réduit au départ et à l'arrivée.
+        assertThat(saved.preview).hasSize(2)
     }
 
     @Test

@@ -21,4 +21,6 @@ data class Activity(
     val notes: String?,
     /** Pause automatique active pendant la sortie : l'analyse retire alors les arrêts du temps. */
     val autoPause: Boolean = true,
+    /** Tracé simplifié (quelques dizaines de points) pour les miniatures ; null avant calcul. */
+    val preview: List<GeoPoint>? = null,
 )

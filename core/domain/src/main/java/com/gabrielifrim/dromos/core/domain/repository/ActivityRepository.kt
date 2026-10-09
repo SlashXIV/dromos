@@ -18,4 +18,7 @@ interface ActivityRepository {
     suspend fun updateDetails(id: Long, title: String?, notes: String?)
 
     suspend fun delete(id: Long)
+
+    /** Calcule l'aperçu des sorties qui n'en ont pas (enregistrées avant la v0.7). */
+    suspend fun backfillPreviews()
 }

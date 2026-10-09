@@ -1,6 +1,7 @@
 package com.gabrielifrim.dromos.core.domain.tracking
 
 import com.gabrielifrim.dromos.core.domain.ApplicationScope
+import com.gabrielifrim.dromos.core.domain.geo.TraceSimplifier
 import com.gabrielifrim.dromos.core.domain.location.BarometerSource
 import com.gabrielifrim.dromos.core.domain.location.LocationSource
 import com.gabrielifrim.dromos.core.domain.model.ActivityType
@@ -144,6 +145,7 @@ class TrackingEngine @Inject constructor(
             runningSince = null,
         )
         flush(final)
+        val preview = TraceSimplifier.simplify(_trace.value.flatten())
         _state.value = TrackingState.Idle
         _trace.value = emptyList()
         traceSegment = null
@@ -151,7 +153,7 @@ class TrackingEngine @Inject constructor(
             repository.deleteActivity(active.activityId)
             null
         } else {
-            repository.finishActivity(active.activityId, now, final.totals(now))
+            repository.finishActivity(active.activityId, now, final.totals(now), preview)
             active.activityId
         }
     }
