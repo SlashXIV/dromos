@@ -1,0 +1,48 @@
+name: Publication
+
+# Un tag vX.Y.Z poussé = un APK signé publié dans les Releases.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Vérifier que le tag correspond à la version de l'application
+        run: |
+          version=$(grep -oP 'val dromosVersion = "\K[^"]+' app/build.gradle.kts)
+          test "v$version" = "$GITHUB_REF_NAME" || { echo "Tag $GITHUB_REF_NAME ≠ version $version"; exit 1; }
+
+      - name: Restaurer la clé de signature
+        run: echo "${{ secrets.DROMOS_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/dromos-release.jks"
+
+      - name: Tests et APK signé
+        env:
+          DROMOS_SIGNING_STOREFILE: ${{ runner.temp }}/dromos-release.jks
+          DROMOS_SIGNING_STOREPASSWORD: ${{ secrets.DROMOS_STORE_PASSWORD }}
+          DROMOS_SIGNING_KEYALIAS: ${{ secrets.DROMOS_KEY_ALIAS }}
+          DROMOS_SIGNING_KEYPASSWORD: ${{ secrets.DROMOS_KEY_PASSWORD }}
+        run: |
+          ./gradlew testDebugUnitTest :core:domain:test assembleRelease
+          cp app/build/outputs/apk/release/app-release.apk "Dromos-$GITHUB_REF_NAME.apk"
+
+      - name: Créer la release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git fetch --force origin "refs/tags/$GITHUB_REF_NAME:refs/tags/$GITHUB_REF_NAME"
+          git tag -l --format='%(contents:body)' "$GITHUB_REF_NAME" > notes.md
+          gh release create "$GITHUB_REF_NAME" "Dromos-$GITHUB_REF_NAME.apk" \
+            --title "Dromos $GITHUB_REF_NAME" \
+            --notes-file notes.md
