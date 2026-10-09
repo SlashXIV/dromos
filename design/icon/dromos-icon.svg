@@ -9,7 +9,7 @@
   garanti visible quel que soit le masque du lanceur.
   - D : tracé plein en evenodd, fût de 8,5, boîte 25,5 × 29 (y 35 → 64), centré sur x = 54.
   - Trait : 31 × 2, arrondi 1, à y = 70. Un TRAIT, pas un bandeau.
-  Couleurs provisoires, à confirmer avec la direction artistique (jalon J8).
+  Couleurs de la palette Corail (fond neutre sombre, corail #EE6055).
 -->
 <svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108">
   <defs>
@@ -18,8 +18,8 @@
     </clipPath>
   </defs>
   <g clip-path="url(#squircle)">
-    <rect width="108" height="108" fill="#101214"/>
-    <path fill="#F2F0EA" fill-rule="evenodd" d="M41.5,35H52.5C61.5,35 67,40.6 67,49.5C67,58.4 61.5,64 52.5,64H41.5Z M50,42H52.2C56.6,42 58.5,44.8 58.5,49.5C58.5,54.2 56.6,57 52.2,57H50Z"/>
-    <rect x="38.5" y="70" width="31" height="2" rx="1" fill="#FF6A3D"/>
+    <rect width="108" height="108" fill="#111315"/>
+    <path fill="#F4F1EC" fill-rule="evenodd" d="M41.5,35H52.5C61.5,35 67,40.6 67,49.5C67,58.4 61.5,64 52.5,64H41.5Z M50,42H52.2C56.6,42 58.5,44.8 58.5,49.5C58.5,54.2 56.6,57 52.2,57H50Z"/>
+    <rect x="38.5" y="70" width="31" height="2" rx="1" fill="#EE6055"/>
   </g>
 </svg>
