@@ -8,7 +8,7 @@ plugins {
 
 // Version publiée : la SEULE ligne à modifier lors d'une release.
 // Règle : correctif = patch, nouveau jalon = mineure, 1.0.0 = cahier des charges complet.
-val dromosVersion = "0.2.0"
+val dromosVersion = "0.3.0"
 
 android {
     namespace = "com.gabrielifrim.dromos"
@@ -60,8 +60,11 @@ dependencies {
     implementation(projects.core.domain)
     implementation(projects.core.data)
     implementation(projects.core.ui)
+    implementation(projects.core.location)
+    implementation(projects.core.tracking)
     implementation(projects.feature.history)
     implementation(projects.feature.settings)
+    implementation(projects.feature.record)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)
