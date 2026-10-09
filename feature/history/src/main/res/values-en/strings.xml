@@ -6,4 +6,7 @@
     <string name="history_open_settings">Settings</string>
     <string name="history_new_activity">New activity</string>
     <string name="history_tracking_in_progress">Activity in progress</string>
+    <string name="history_filter_all">All</string>
+    <string name="history_empty_filtered_title">No activity of this type</string>
+    <string name="history_empty_filtered_body">Pick another filter, or get going!</string>
 </resources>

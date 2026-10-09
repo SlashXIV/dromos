@@ -1,6 +1,7 @@
 package com.gabrielifrim.dromos.feature.settings
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,6 +19,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.outlined.BatteryAlert
+import androidx.compose.material.icons.outlined.BatteryFull
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -32,18 +35,24 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gabrielifrim.dromos.core.domain.model.AppearanceSettings
 import com.gabrielifrim.dromos.core.domain.model.MapPreferences
 import com.gabrielifrim.dromos.core.domain.model.ThemeMode
 import com.gabrielifrim.dromos.core.domain.model.TrackingPreferences
+import com.gabrielifrim.dromos.core.tracking.BatteryOptimization
 import com.gabrielifrim.dromos.core.ui.theme.DromosPalette
 import com.gabrielifrim.dromos.core.ui.theme.Palettes
 
@@ -93,6 +102,8 @@ fun SettingsScreen(
                 checked = tracking.autoPause,
             ) { onAction(SettingsAction.SetAutoPause(it)) }
 
+            BatteryRow()
+
             SectionTitle(stringResource(R.string.settings_map), Modifier.padding(top = 12.dp))
             SwitchRow(
                 title = stringResource(R.string.settings_online_basemap),
@@ -126,6 +137,42 @@ private fun SectionTitle(text: String, modifier: Modifier = Modifier) {
         color = MaterialTheme.colorScheme.primary,
         modifier = modifier,
     )
+}
+
+/** État relu à chaque retour sur l'écran : l'utilisateur revient des paramètres Android. */
+@Composable
+private fun BatteryRow() {
+    val context = LocalContext.current
+    var unrestricted by remember { mutableStateOf(BatteryOptimization.isUnrestricted(context)) }
+    LifecycleResumeEffect(Unit) {
+        unrestricted = BatteryOptimization.isUnrestricted(context)
+        onPauseOrDispose { }
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                val intent = if (unrestricted) BatteryOptimization.manufacturerIntent(context)
+                else BatteryOptimization.requestIntent(context)
+                BatteryOptimization.open(context, intent)
+            },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(stringResource(R.string.settings_battery), style = MaterialTheme.typography.bodyLarge)
+            Text(
+                stringResource(if (unrestricted) R.string.settings_battery_ok else R.string.settings_battery_restricted),
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (unrestricted) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error,
+            )
+        }
+        Icon(
+            if (unrestricted) Icons.Outlined.BatteryFull else Icons.Outlined.BatteryAlert,
+            contentDescription = null,
+            tint = if (unrestricted) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error,
+        )
+    }
 }
 
 @Composable

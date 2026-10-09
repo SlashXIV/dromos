@@ -17,6 +17,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -33,8 +34,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gabrielifrim.dromos.core.domain.model.Activity
+import com.gabrielifrim.dromos.core.domain.model.ActivityType
 import com.gabrielifrim.dromos.core.ui.component.EmptyState
 import com.gabrielifrim.dromos.core.ui.text.Format
+import com.gabrielifrim.dromos.core.ui.text.displayTitle
 import com.gabrielifrim.dromos.core.ui.text.labelRes
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -46,10 +49,11 @@ fun HistoryRoute(
     trackingActive: Boolean,
     onOpenRecord: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenActivity: (Long) -> Unit,
     viewModel: HistoryViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    HistoryScreen(state, trackingActive, onOpenRecord, onOpenSettings)
+    HistoryScreen(state, trackingActive, onOpenRecord, onOpenSettings, onOpenActivity, viewModel::setFilter)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,6 +63,8 @@ fun HistoryScreen(
     trackingActive: Boolean,
     onOpenRecord: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenActivity: (Long) -> Unit,
+    onFilter: (ActivityType?) -> Unit,
 ) {
     Scaffold(
         topBar = {
@@ -81,39 +87,69 @@ fun HistoryScreen(
             )
         },
     ) { padding ->
-        when {
-            state.isLoading -> Box(Modifier.fillMaxSize().padding(padding), Alignment.Center) {
-                CircularProgressIndicator()
-            }
+        Column(Modifier.padding(padding)) {
+            FilterRow(state.filter, onFilter)
+            when {
+                state.isLoading -> Box(Modifier.fillMaxSize(), Alignment.Center) {
+                    CircularProgressIndicator()
+                }
 
-            state.activities.isEmpty() -> EmptyState(
-                icon = Icons.AutoMirrored.Filled.DirectionsRun,
-                title = stringResource(R.string.history_empty_title),
-                body = stringResource(R.string.history_empty_body),
-                modifier = Modifier.padding(padding),
-            )
+                state.activities.isEmpty() && state.filter == null -> EmptyState(
+                    icon = Icons.AutoMirrored.Filled.DirectionsRun,
+                    title = stringResource(R.string.history_empty_title),
+                    body = stringResource(R.string.history_empty_body),
+                )
 
-            else -> LazyColumn(
-                contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 96.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.padding(padding),
-            ) {
-                items(state.activities, key = { it.id }) { ActivityCard(it) }
+                state.activities.isEmpty() -> EmptyState(
+                    icon = Icons.AutoMirrored.Filled.DirectionsRun,
+                    title = stringResource(R.string.history_empty_filtered_title),
+                    body = stringResource(R.string.history_empty_filtered_body),
+                )
+
+                else -> LazyColumn(
+                    contentPadding = PaddingValues(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 96.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    items(state.activities, key = { it.id }) { activity ->
+                        ActivityCard(activity, onClick = { onOpenActivity(activity.id) })
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun ActivityCard(activity: Activity) {
+private fun FilterRow(selected: ActivityType?, onFilter: (ActivityType?) -> Unit) {
+    Row(
+        modifier = Modifier.padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        FilterChip(
+            selected = selected == null,
+            onClick = { onFilter(null) },
+            label = { Text(stringResource(R.string.history_filter_all)) },
+        )
+        ActivityType.entries.forEach { type ->
+            FilterChip(
+                selected = selected == type,
+                onClick = { onFilter(type) },
+                label = { Text(stringResource(type.labelRes)) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun ActivityCard(activity: Activity, onClick: () -> Unit) {
     val locale = LocalConfiguration.current.locales[0]
     val date = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
         .withLocale(locale)
         .format(activity.startedAt.atZone(ZoneId.systemDefault()))
-    Card(Modifier.fillMaxWidth()) {
+    Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
-                text = activity.title ?: stringResource(activity.type.labelRes),
+                text = activity.displayTitle(),
                 style = MaterialTheme.typography.titleMedium,
             )
             Text(

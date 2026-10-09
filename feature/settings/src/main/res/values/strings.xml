@@ -14,4 +14,7 @@
     <string name="settings_map">Carte</string>
     <string name="settings_online_basemap">Fond de carte en ligne</string>
     <string name="settings_online_basemap_body">Télécharge les tuiles OpenStreetMap (OpenFreeMap) autour de toi. Désactivé : aucune requête réseau, seul le tracé est dessiné.</string>
+    <string name="settings_battery">Batterie</string>
+    <string name="settings_battery_ok">Sans restriction : la sortie continue écran éteint. Touche pour les réglages du fabricant.</string>
+    <string name="settings_battery_restricted">Restreinte : Android peut couper ta sortie écran éteint. Touche pour corriger.</string>
 </resources>

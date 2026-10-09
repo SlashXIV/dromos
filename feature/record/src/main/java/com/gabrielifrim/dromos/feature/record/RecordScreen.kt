@@ -60,6 +60,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gabrielifrim.dromos.core.domain.model.ActivityType
 import com.gabrielifrim.dromos.core.domain.tracking.TrackingState
 import com.gabrielifrim.dromos.core.map.TrackMap
+import com.gabrielifrim.dromos.core.tracking.BatteryOptimization
+import com.gabrielifrim.dromos.core.tracking.BatteryPromptDialog
 import com.gabrielifrim.dromos.core.ui.theme.DromosTheme
 import com.gabrielifrim.dromos.core.ui.text.Format
 import com.gabrielifrim.dromos.core.ui.text.labelRes
@@ -69,7 +71,7 @@ import com.gabrielifrim.dromos.core.ui.R as UiR
 @Composable
 fun RecordRoute(
     onBack: () -> Unit,
-    onFinished: () -> Unit,
+    onFinished: (Long?) -> Unit,
     viewModel: RecordViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -115,7 +117,7 @@ fun RecordScreen(
         ) {
             val active = state.active
             if (active == null) {
-                IdleContent(state.selectedType, onAction)
+                IdleContent(state.selectedType, state.batteryPromptDismissed, onAction)
             } else {
                 if (active.recovered) RecoveredBanner()
                 TrackMap(
@@ -158,8 +160,21 @@ fun RecordScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun IdleContent(selected: ActivityType, onAction: (RecordAction) -> Unit) {
+private fun IdleContent(selected: ActivityType, batteryPromptDismissed: Boolean, onAction: (RecordAction) -> Unit) {
     val context = LocalContext.current
+    var askBattery by remember { mutableStateOf(false) }
+    // Démarrage effectif, précédé une fois de la fenêtre batterie si Android peut couper l'appli.
+    val start = {
+        if (!batteryPromptDismissed && !BatteryOptimization.isUnrestricted(context)) askBattery = true
+        else onAction(RecordAction.Start)
+    }
+    if (askBattery) {
+        BatteryPromptDialog { neverAgain ->
+            askBattery = false
+            if (neverAgain) onAction(RecordAction.NeverAskBattery)
+            onAction(RecordAction.Start)
+        }
+    }
     val permissions = buildList {
         add(Manifest.permission.ACCESS_FINE_LOCATION)
         add(Manifest.permission.ACCESS_COARSE_LOCATION)
@@ -170,7 +185,7 @@ private fun IdleContent(selected: ActivityType, onAction: (RecordAction) -> Unit
         // La position précise est indispensable ; la notification ne l'est pas.
         if (result[Manifest.permission.ACCESS_FINE_LOCATION] == true) {
             denied = false
-            onAction(RecordAction.Start)
+            start()
         } else {
             denied = true
         }
@@ -194,7 +209,7 @@ private fun IdleContent(selected: ActivityType, onAction: (RecordAction) -> Unit
             onClick = {
                 val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
                     PackageManager.PERMISSION_GRANTED
-                if (granted) onAction(RecordAction.Start) else launcher.launch(permissions.toTypedArray())
+                if (granted) start() else launcher.launch(permissions.toTypedArray())
             },
             modifier = Modifier.size(160.dp),
             shape = MaterialTheme.shapes.extraLarge,

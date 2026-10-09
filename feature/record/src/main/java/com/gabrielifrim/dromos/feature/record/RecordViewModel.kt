@@ -27,6 +27,7 @@ data class RecordUiState(
     val now: Instant = Instant.EPOCH,
     val trace: List<List<GeoPoint>> = emptyList(),
     val onlineBasemap: Boolean = true,
+    val batteryPromptDismissed: Boolean = false,
 ) {
     val active: TrackingState.Active? get() = tracking as? TrackingState.Active
     val movingDuration: Duration get() = active?.movingDurationAt(now) ?: Duration.ZERO
@@ -39,13 +40,14 @@ sealed interface RecordAction {
     data object Resume : RecordAction
     data object Stop : RecordAction
     data object Discard : RecordAction
+    data object NeverAskBattery : RecordAction
 }
 
 @HiltViewModel
 class RecordViewModel @Inject constructor(
     private val controller: TrackingController,
     private val clock: Clock,
-    settings: SettingsRepository,
+    private val settings: SettingsRepository,
 ) : ViewModel() {
 
     private val selectedType = MutableStateFlow(ActivityType.RUN)
@@ -63,26 +65,32 @@ class RecordViewModel @Inject constructor(
         controller.state,
         ticker,
         controller.trace,
-        settings.map,
-    ) { type, tracking, now, trace, map ->
-        RecordUiState(selectedType = type, tracking = tracking, now = now, trace = trace, onlineBasemap = map.onlineBasemap)
+        combine(settings.map, settings.tracking) { map, prefs -> map to prefs },
+    ) { type, tracking, now, trace, (map, prefs) ->
+        RecordUiState(
+            selectedType = type,
+            tracking = tracking,
+            now = now,
+            trace = trace,
+            onlineBasemap = map.onlineBasemap,
+            batteryPromptDismissed = prefs.batteryPromptDismissed,
+        )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), RecordUiState())
 
-    fun onAction(action: RecordAction, onFinished: () -> Unit = {}) {
+    /** @param onFinished identifiant de la sortie enregistrée, null si elle a été écartée. */
+    fun onAction(action: RecordAction, onFinished: (Long?) -> Unit = {}) {
         viewModelScope.launch {
             when (action) {
                 is RecordAction.SelectType -> selectedType.value = action.type
                 RecordAction.Start -> controller.start(selectedType.value)
                 RecordAction.Pause -> controller.pause()
                 RecordAction.Resume -> controller.resume()
-                RecordAction.Stop -> {
-                    controller.stop()
-                    onFinished()
-                }
+                RecordAction.Stop -> onFinished(controller.stop())
                 RecordAction.Discard -> {
                     controller.discard()
-                    onFinished()
+                    onFinished(null)
                 }
+                RecordAction.NeverAskBattery -> settings.setBatteryPromptDismissed(true)
             }
         }
     }

@@ -14,4 +14,7 @@
     <string name="settings_map">Map</string>
     <string name="settings_online_basemap">Online basemap</string>
     <string name="settings_online_basemap_body">Downloads OpenStreetMap tiles (OpenFreeMap) around you. Off: no network request at all, only the route is drawn.</string>
+    <string name="settings_battery">Battery</string>
+    <string name="settings_battery_ok">Unrestricted: tracking keeps running with the screen off. Tap for manufacturer settings.</string>
+    <string name="settings_battery_restricted">Restricted: Android may stop tracking with the screen off. Tap to fix.</string>
 </resources>
