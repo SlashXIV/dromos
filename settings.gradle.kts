@@ -28,3 +28,4 @@ include(":core:data")
 include(":core:ui")
 
 include(":feature:history")
+include(":feature:settings")

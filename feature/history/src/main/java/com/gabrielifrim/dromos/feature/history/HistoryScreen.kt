@@ -12,9 +12,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsRun
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -38,16 +41,28 @@ import java.time.format.FormatStyle
 import com.gabrielifrim.dromos.core.ui.R as UiR
 
 @Composable
-fun HistoryRoute(viewModel: HistoryViewModel = hiltViewModel()) {
+fun HistoryRoute(
+    onOpenSettings: () -> Unit,
+    viewModel: HistoryViewModel = hiltViewModel(),
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    HistoryScreen(state)
+    HistoryScreen(state, onOpenSettings)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HistoryScreen(state: HistoryUiState) {
+fun HistoryScreen(state: HistoryUiState, onOpenSettings: () -> Unit) {
     Scaffold(
-        topBar = { TopAppBar(title = { Text(stringResource(R.string.history_title)) }) },
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.history_title)) },
+                actions = {
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(Icons.Outlined.Settings, stringResource(R.string.history_open_settings))
+                    }
+                },
+            )
+        },
     ) { padding ->
         when {
             state.isLoading -> Box(Modifier.fillMaxSize().padding(padding), Alignment.Center) {

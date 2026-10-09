@@ -1,0 +1,170 @@
+package com.gabrielifrim.dromos.feature.settings
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.gabrielifrim.dromos.core.domain.model.AppearanceSettings
+import com.gabrielifrim.dromos.core.domain.model.ThemeMode
+import com.gabrielifrim.dromos.core.ui.theme.DromosPalette
+import com.gabrielifrim.dromos.core.ui.theme.Palettes
+
+@Composable
+fun SettingsRoute(
+    onBack: () -> Unit,
+    viewModel: SettingsViewModel = hiltViewModel(),
+) {
+    val appearance by viewModel.appearance.collectAsStateWithLifecycle()
+    SettingsScreen(appearance, viewModel::onAction, onBack)
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsScreen(
+    appearance: AppearanceSettings,
+    onAction: (SettingsAction) -> Unit,
+    onBack: () -> Unit,
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.settings_title)) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.settings_back))
+                    }
+                },
+            )
+        },
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            SectionTitle(stringResource(R.string.settings_theme_mode))
+            ThemeModeSelector(appearance.themeMode) { onAction(SettingsAction.SelectThemeMode(it)) }
+
+            SectionTitle(stringResource(R.string.settings_palette), Modifier.padding(top = 12.dp))
+            val selected = Palettes.byId(appearance.paletteId)
+            Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Palettes.all.forEach { palette ->
+                    PaletteCard(
+                        palette = palette,
+                        selected = palette.id == selected.id,
+                        onClick = { onAction(SettingsAction.SelectPalette(palette.id)) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SectionTitle(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = modifier,
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ThemeModeSelector(current: ThemeMode, onSelect: (ThemeMode) -> Unit) {
+    val modes = listOf(
+        ThemeMode.SYSTEM to R.string.settings_theme_system,
+        ThemeMode.LIGHT to R.string.settings_theme_light,
+        ThemeMode.DARK to R.string.settings_theme_dark,
+    )
+    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+        modes.forEachIndexed { index, (mode, label) ->
+            SegmentedButton(
+                selected = current == mode,
+                onClick = { onSelect(mode) },
+                shape = SegmentedButtonDefaults.itemShape(index, modes.size),
+            ) { Text(stringResource(label)) }
+        }
+    }
+}
+
+@Composable
+private fun PaletteCard(palette: DromosPalette, selected: Boolean, onClick: () -> Unit) {
+    val border = if (selected) {
+        BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+    } else {
+        BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    }
+    OutlinedCard(
+        border = border,
+        modifier = Modifier
+            .fillMaxWidth()
+            .selectable(selected = selected, onClick = onClick, role = Role.RadioButton),
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(stringResource(palette.nameRes), style = MaterialTheme.typography.titleMedium)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    palette.swatches.forEach { Swatch(it) }
+                }
+            }
+            if (selected) {
+                Icon(
+                    Icons.Filled.CheckCircle,
+                    contentDescription = stringResource(R.string.settings_palette_selected),
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun Swatch(color: Color) {
+    Box(
+        Modifier
+            .size(28.dp)
+            .background(color, CircleShape),
+    )
+}

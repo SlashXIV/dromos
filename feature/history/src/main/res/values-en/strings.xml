@@ -3,4 +3,5 @@
     <string name="history_title">History</string>
     <string name="history_empty_title">No activities yet</string>
     <string name="history_empty_body">Your recorded activities will show up here, with their route and splits.</string>
+    <string name="history_open_settings">Settings</string>
 </resources>

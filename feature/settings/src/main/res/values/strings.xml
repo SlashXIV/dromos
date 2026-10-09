@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">Réglages</string>
+    <string name="settings_back">Retour</string>
+    <string name="settings_theme_mode">Apparence</string>
+    <string name="settings_theme_system">Système</string>
+    <string name="settings_theme_light">Clair</string>
+    <string name="settings_theme_dark">Sombre</string>
+    <string name="settings_palette">Palette de couleurs</string>
+    <string name="settings_palette_selected">Palette sélectionnée</string>
+</resources>
