@@ -12,18 +12,24 @@ sealed interface TrackingState {
         val activityId: Long,
         val type: ActivityType,
         val startedAt: Instant,
+        /** Pause manuelle : GPS coupé. */
         val paused: Boolean,
-        /** Numéro du segment courant : +1 à chaque reprise. */
+        /** Numéro du segment courant : +1 à chaque reprise manuelle. */
         val segment: Int,
         val distanceMeters: Double,
-        /** Durée en mouvement des segments déjà clos. */
+        /** Durée en mouvement des périodes déjà closes. */
         val movingBase: Duration,
-        /** Début du segment en cours ; null en pause. */
+        /** Début de la période de mouvement en cours ; null en pause (manuelle ou automatique). */
         val runningSince: Instant?,
         val pointCount: Int,
         val lastFixAt: Instant?,
+        /** Vitesse lissée sur quelques secondes, pour l'allure affichée. */
         val currentSpeedMetersPerSecond: Float?,
         val accuracyMeters: Float?,
+        val elevationGainMeters: Double = 0.0,
+        val elevationLossMeters: Double = 0.0,
+        /** Pause automatique : GPS actif, chrono arrêté jusqu'au départ suivant. */
+        val autoPaused: Boolean = false,
         /** Sortie reprise après la mort du processus : l'écran le signale. */
         val recovered: Boolean = false,
         /** La source GPS a refusé de démarrer (permission retirée, GPS absent). */

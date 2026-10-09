@@ -2,6 +2,7 @@ package com.gabrielifrim.dromos.core.domain.repository
 
 import com.gabrielifrim.dromos.core.domain.model.AppearanceSettings
 import com.gabrielifrim.dromos.core.domain.model.ThemeMode
+import com.gabrielifrim.dromos.core.domain.model.TrackingPreferences
 import kotlinx.coroutines.flow.Flow
 
 interface SettingsRepository {
@@ -10,4 +11,8 @@ interface SettingsRepository {
     suspend fun setPalette(paletteId: String)
 
     suspend fun setThemeMode(mode: ThemeMode)
+
+    val tracking: Flow<TrackingPreferences>
+
+    suspend fun setAutoPause(enabled: Boolean)
 }

@@ -3,7 +3,7 @@ package com.gabrielifrim.dromos.core.domain.repository
 import com.gabrielifrim.dromos.core.domain.model.Activity
 import com.gabrielifrim.dromos.core.domain.model.ActivityType
 import com.gabrielifrim.dromos.core.domain.model.TrackPoint
-import java.time.Duration
+import com.gabrielifrim.dromos.core.domain.model.TrackTotals
 import java.time.Instant
 
 /** Écritures du moteur de suivi pendant une sortie. */
@@ -12,19 +12,9 @@ interface TrackingRepository {
     suspend fun createActivity(type: ActivityType, startedAt: Instant): Long
 
     /** Ajoute des points ET met à jour les totaux, dans une même transaction. */
-    suspend fun appendPoints(
-        activityId: Long,
-        points: List<TrackPoint>,
-        distanceMeters: Double,
-        movingDuration: Duration,
-    )
+    suspend fun appendPoints(activityId: Long, points: List<TrackPoint>, totals: TrackTotals)
 
-    suspend fun finishActivity(
-        activityId: Long,
-        endedAt: Instant,
-        distanceMeters: Double,
-        movingDuration: Duration,
-    )
+    suspend fun finishActivity(activityId: Long, endedAt: Instant, totals: TrackTotals)
 
     suspend fun deleteActivity(activityId: Long)
 

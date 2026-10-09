@@ -1,10 +1,13 @@
 package com.gabrielifrim.dromos.core.domain.tracking
 
 import com.gabrielifrim.dromos.core.domain.ApplicationScope
+import com.gabrielifrim.dromos.core.domain.location.BarometerSource
 import com.gabrielifrim.dromos.core.domain.location.LocationSource
 import com.gabrielifrim.dromos.core.domain.model.ActivityType
 import com.gabrielifrim.dromos.core.domain.model.LocationSample
 import com.gabrielifrim.dromos.core.domain.model.TrackPoint
+import com.gabrielifrim.dromos.core.domain.model.TrackTotals
+import com.gabrielifrim.dromos.core.domain.repository.SettingsRepository
 import com.gabrielifrim.dromos.core.domain.repository.TrackingRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -17,6 +20,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.time.Clock
 import java.time.Duration
+import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -34,7 +38,9 @@ import javax.inject.Singleton
 @Singleton
 class TrackingEngine @Inject constructor(
     private val locationSource: LocationSource,
+    private val barometerSource: BarometerSource,
     private val repository: TrackingRepository,
+    private val settings: SettingsRepository,
     private val clock: Clock,
     @param:ApplicationScope private val scope: CoroutineScope,
 ) {
@@ -43,30 +49,50 @@ class TrackingEngine @Inject constructor(
 
     private val mutex = Mutex()
     private var accumulator = TrackAccumulator()
+    private var autoPause = AutoPauseDetector(ActivityType.RUN)
     private val pending = mutableListOf<TrackPoint>()
     private var locationJob: Job? = null
+    private var barometerJob: Job? = null
+    private var latestBaro: Pair<Instant, Double>? = null
+
+    @Volatile
+    private var autoPauseEnabled = true
+
+    init {
+        scope.launch {
+            settings.tracking.collect { prefs ->
+                autoPauseEnabled = prefs.autoPause
+                // Désactivée en pleine pause automatique : le chrono repart tout de suite.
+                if (!prefs.autoPause) mutex.withLock { leaveAutoPause(clock.instant()) }
+            }
+        }
+    }
 
     suspend fun start(type: ActivityType) = mutex.withLock {
         if (_state.value != TrackingState.Idle) return@withLock
         val now = clock.instant()
         val id = repository.createActivity(type, now)
         accumulator = TrackAccumulator()
+        autoPause = AutoPauseDetector(type)
         pending.clear()
         _state.value = TrackingState.Active(
             activityId = id, type = type, startedAt = now, paused = false, segment = 0,
             distanceMeters = 0.0, movingBase = Duration.ZERO, runningSince = now,
             pointCount = 0, lastFixAt = null, currentSpeedMetersPerSecond = null, accuracyMeters = null,
         )
-        startLocationUpdates()
+        startSensors()
     }
 
     suspend fun pause() = mutex.withLock {
         val active = _state.value as? TrackingState.Active ?: return@withLock
         if (active.paused) return@withLock
-        stopLocationUpdates()
+        stopSensors()
+        accumulator.closeSegment()
         val now = clock.instant()
         val paused = active.copy(
+            distanceMeters = accumulator.distanceMeters,
             paused = true,
+            autoPaused = false,
             movingBase = active.movingDurationAt(now),
             runningSince = null,
             currentSpeedMetersPerSecond = null,
@@ -78,6 +104,7 @@ class TrackingEngine @Inject constructor(
     suspend fun resume() = mutex.withLock {
         val active = _state.value as? TrackingState.Active ?: return@withLock
         if (!active.paused) return@withLock
+        autoPause.reset()
         _state.value = active.copy(
             paused = false,
             segment = active.segment + 1,
@@ -85,7 +112,7 @@ class TrackingEngine @Inject constructor(
             recovered = false,
             locationError = false,
         )
-        startLocationUpdates()
+        startSensors()
     }
 
     /**
@@ -96,16 +123,21 @@ class TrackingEngine @Inject constructor(
      */
     suspend fun stop(): Long? = mutex.withLock {
         val active = _state.value as? TrackingState.Active ?: return@withLock null
-        stopLocationUpdates()
+        stopSensors()
+        accumulator.closeSegment()
         val now = clock.instant()
-        val final = active.copy(movingBase = active.movingDurationAt(now), runningSince = null)
+        val final = active.copy(
+            distanceMeters = accumulator.distanceMeters,
+            movingBase = active.movingDurationAt(now),
+            runningSince = null,
+        )
         flush(final)
         _state.value = TrackingState.Idle
         if (accumulator.pointCount == 0) {
             repository.deleteActivity(active.activityId)
             null
         } else {
-            repository.finishActivity(active.activityId, now, final.distanceMeters, final.movingBase)
+            repository.finishActivity(active.activityId, now, final.totals(now))
             active.activityId
         }
     }
@@ -113,7 +145,7 @@ class TrackingEngine @Inject constructor(
     /** Abandonne la sortie en cours sans l'enregistrer. */
     suspend fun discard() = mutex.withLock {
         val active = _state.value as? TrackingState.Active ?: return@withLock
-        stopLocationUpdates()
+        stopSensors()
         pending.clear()
         _state.value = TrackingState.Idle
         repository.deleteActivity(active.activityId)
@@ -131,6 +163,7 @@ class TrackingEngine @Inject constructor(
         val activity = repository.findInProgress() ?: return@withLock false
         val points = repository.points(activity.id)
         accumulator = TrackAccumulator.of(points)
+        autoPause = AutoPauseDetector(activity.type)
         pending.clear()
         _state.value = TrackingState.Active(
             activityId = activity.id,
@@ -145,23 +178,35 @@ class TrackingEngine @Inject constructor(
             lastFixAt = points.lastOrNull()?.timestamp,
             currentSpeedMetersPerSecond = null,
             accuracyMeters = null,
+            elevationGainMeters = accumulator.elevationGainMeters,
+            elevationLossMeters = accumulator.elevationLossMeters,
             recovered = true,
         )
         true
     }
 
-    private fun startLocationUpdates() {
+    private fun startSensors() {
         locationJob?.cancel()
         locationJob = scope.launch {
             locationSource.locations()
                 .catch { markLocationError() }
                 .collect { onSample(it) }
         }
+        barometerJob?.cancel()
+        latestBaro = null
+        barometerJob = scope.launch {
+            // Pas de baromètre, ou capteur en échec : le dénivelé se rabat sur le GPS.
+            barometerSource.altitudes()
+                .catch { }
+                .collect { latestBaro = clock.instant() to it }
+        }
     }
 
-    private fun stopLocationUpdates() {
+    private fun stopSensors() {
         locationJob?.cancel()
         locationJob = null
+        barometerJob?.cancel()
+        barometerJob = null
     }
 
     private suspend fun markLocationError() = mutex.withLock {
@@ -172,10 +217,11 @@ class TrackingEngine @Inject constructor(
     private suspend fun onSample(sample: LocationSample) = mutex.withLock {
         val active = _state.value as? TrackingState.Active ?: return@withLock
         if (active.paused) return@withLock
-        // Position datée d'avant le segment : dernière position connue en cache,
+        // Position datée d'avant la reprise : dernière position connue en cache,
         // livrée à l'abonnement. Elle ne décrit pas cette sortie.
-        val segmentStart = active.runningSince ?: return@withLock
-        if (sample.timestamp < segmentStart.minusSeconds(STALE_TOLERANCE_S)) return@withLock
+        val now = clock.instant()
+        if (sample.timestamp < lastResumeOrStart(active).minusSeconds(STALE_TOLERANCE_S)) return@withLock
+        val baro = latestBaro?.takeIf { Duration.between(it.first, now) <= BARO_MAX_AGE }?.second
         val point = TrackPoint(
             timestamp = sample.timestamp,
             latitude = sample.latitude,
@@ -184,35 +230,60 @@ class TrackingEngine @Inject constructor(
             accuracyMeters = sample.accuracyMeters,
             speedMetersPerSecond = sample.speedMetersPerSecond,
             segment = active.segment,
+            bearingDegrees = sample.bearingDegrees,
+            baroAltitudeMeters = baro,
         )
         val kept = accumulator.add(point)
         if (kept) pending += point
-        val updated = active.copy(
+        var updated = active.copy(
             distanceMeters = accumulator.distanceMeters,
             pointCount = accumulator.pointCount,
             lastFixAt = sample.timestamp,
-            // Vitesse du récepteur si fournie (effet Doppler, plus fiable), sinon déduite des
-            // points. Certains récepteurs annoncent 0 au lieu de « inconnue » : traité pareil.
-            currentSpeedMetersPerSecond = sample.speedMetersPerSecond?.takeIf { it > 0f }
-                ?: accumulator.lastSpeedMetersPerSecond,
+            currentSpeedMetersPerSecond = accumulator.smoothedSpeedMetersPerSecond?.toFloat(),
             accuracyMeters = sample.accuracyMeters,
+            elevationGainMeters = accumulator.elevationGainMeters,
+            elevationLossMeters = accumulator.elevationLossMeters,
             locationError = false,
         )
+        if (autoPauseEnabled && kept) {
+            when (val decision = autoPause.onSpeed(now, accumulator.instantSpeedMetersPerSecond, updated.autoPaused)) {
+                is AutoPauseDetector.Decision.Stop -> updated = updated.copy(
+                    autoPaused = true,
+                    movingBase = updated.movingDurationAt(maxOf(decision.since, updated.runningSince ?: decision.since)),
+                    runningSince = null,
+                )
+                is AutoPauseDetector.Decision.Go -> updated = updated.copy(autoPaused = false, runningSince = decision.since)
+                AutoPauseDetector.Decision.None -> Unit
+            }
+        }
         _state.value = updated
         if (pending.size >= FLUSH_EVERY_POINTS) flush(updated)
     }
 
     /** À appeler sous [mutex]. */
+    private fun leaveAutoPause(now: Instant) {
+        val active = _state.value as? TrackingState.Active ?: return
+        if (!active.autoPaused) return
+        autoPause.reset()
+        _state.value = active.copy(autoPaused = false, runningSince = now)
+    }
+
+    private fun lastResumeOrStart(active: TrackingState.Active): Instant =
+        active.runningSince ?: active.lastFixAt ?: active.startedAt
+
+    /** À appeler sous [mutex]. */
     private suspend fun flush(state: TrackingState.Active) {
         val batch = pending.toList()
         pending.clear()
-        repository.appendPoints(
-            activityId = state.activityId,
-            points = batch,
-            distanceMeters = state.distanceMeters,
-            movingDuration = state.movingDurationAt(clock.instant()),
-        )
+        repository.appendPoints(state.activityId, batch, state.totals(clock.instant()))
     }
+
+    private fun TrackingState.Active.totals(now: Instant) = TrackTotals(
+        distanceMeters = distanceMeters,
+        movingDuration = movingDurationAt(now),
+        elevationGainMeters = elevationGainMeters,
+        elevationLossMeters = elevationLossMeters,
+    )
 
     companion object {
         /** ≈ 5 s de trace à une position par seconde. */
@@ -220,5 +291,8 @@ class TrackingEngine @Inject constructor(
 
         /** Tolérance d'horloge entre le téléphone et l'horodatage GNSS. */
         const val STALE_TOLERANCE_S = 5L
+
+        /** Au-delà, la dernière pression connue ne décrit plus le point. */
+        private val BARO_MAX_AGE: Duration = Duration.ofSeconds(5)
     }
 }
