@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Palette de l’icône : fond neutre sombre, accent Vibrant Coral (cf. design/icon/dromos-icon.svg). -->
+    <!-- Palette de l’icône (cf. design/icon/dromos-icon.svg). -->
     <color name="icon_background">#111315</color>
     <color name="icon_letter">#F4F1EC</color>
     <color name="icon_accent">#EE6055</color>
+    <!-- Couloirs de piste : émeraude, jasmin, saumon de la palette Corail. -->
+    <color name="icon_lane_1">#60D394</color>
+    <color name="icon_lane_2">#FFD97D</color>
+    <color name="icon_lane_3">#FF9B85</color>
 </resources>

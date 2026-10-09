@@ -2,12 +2,13 @@
 <resources>
     <!--
         Thème de démarrage, déclaré au manifeste : Android peint la fenêtre avec
-        l'avant-plan de l'icône sur son fond avant la première ligne de code.
-        MainActivity bascule ensuite sur Theme.Dromos via installSplashScreen().
+        l'icône sur son fond avant la première ligne de code. MainActivity
+        bascule ensuite sur Theme.Dromos via installSplashScreen().
+        Avant Android 12 : icône fixe complète (couloirs + D).
     -->
     <style name="Theme.Dromos.Splash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/icon_background</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/splash_static</item>
         <item name="postSplashScreenTheme">@style/Theme.Dromos</item>
     </style>
 

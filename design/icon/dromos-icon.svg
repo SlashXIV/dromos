@@ -1,15 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Icône de Dromos — source de vérité. Les VectorDrawable de app/src/main/res/drawable
-  en sont dérivés : modifier ce fichier d'abord.
+    Dromos — icône d'application, source de référence.
 
-  Même grammaire que les autres applications de l'auteur (Kalos, Popote, Topo, Brut) :
-  une lettre tracée à la main, un trait d'accent fin dessous, les couleurs de la DA.
+    Même grammaire que les autres applications de l'auteur (Kalos, Popote, Topo,
+    Brut) : une lettre tracée à la main, un trait d'accent fin dessous, les
+    couleurs de la DA, et un détail qui raconte l'application.
 
-  Canevas 108×108 (icône adaptative). Seul le cercle central de diamètre 66 est
-  garanti visible quel que soit le masque du lanceur.
-  - D : tracé plein en evenodd, fût de 8,5, boîte 25,5 × 29 (y 35 → 64), centré sur x = 54.
-  - Trait : 31 × 2, arrondi 1, à y = 70. Un TRAIT, pas un bandeau.
-  Couleurs de la palette Corail (fond neutre sombre, corail #EE6055).
+    Le détail : TROIS COULOIRS DE PISTE. Des arcs concentriques centrés en
+    (20, 54), de rayons 56 / 61,5 / 67, sur ±36°, qui épousent la courbe du D
+    comme le virage d'un stade. Le trait corail sous la lettre devient la
+    LIGNE D'ARRIVÉE.
+
+    Canevas 108×108 (icône adaptative) ; seul le cercle central de diamètre 66
+    est garanti visible. Comme les prises de Topo, les couloirs débordent
+    volontairement du masque : leur milieu reste dans le cercle, leurs
+    extrémités sont faites pour être rognées.
+
+    ZONE D'EXCLUSION (lettre + trait, marge comprise) : x 36,5..71,5, y 33..74.
+    Vérifié : le couloir intérieur ne franchit x = 71,5 qu'au-delà de y < 32,1
+    et y > 75,9 — il frôle la boîte sans y entrer.
+
+    Couches dérivées (app/src/main/res/drawable/) :
+      - background : fond + couloirs (le relief de l'icône, sous la lettre) ;
+      - foreground : D + ligne d'arrivée ;
+      - monochrome : les deux, couloirs à mi-opacité ;
+      - avd_splash : version animée de l'écran de démarrage (Android 12+).
+
+    Palette (Corail) : fond #111315, lettre #F4F1EC, ligne d'arrivée #EE6055,
+    couloirs #60D394 (émeraude), #FFD97D (jasmin), #FF9B85 (saumon).
 -->
 <svg xmlns="http://www.w3.org/2000/svg" width="108" height="108" viewBox="0 0 108 108">
   <defs>
@@ -19,6 +37,11 @@
   </defs>
   <g clip-path="url(#squircle)">
     <rect width="108" height="108" fill="#111315"/>
+    <g fill="none" stroke-width="2.6" stroke-linecap="round">
+      <path stroke="#60D394" d="M65.3,21.1 A56,56 0 0 1 65.3,86.9"/>
+      <path stroke="#FFD97D" stroke-opacity="0.92" d="M69.8,17.9 A61.5,61.5 0 0 1 69.8,90.1"/>
+      <path stroke="#FF9B85" stroke-opacity="0.85" d="M74.2,14.6 A67,67 0 0 1 74.2,93.4"/>
+    </g>
     <path fill="#F4F1EC" fill-rule="evenodd" d="M41.5,35H52.5C61.5,35 67,40.6 67,49.5C67,58.4 61.5,64 52.5,64H41.5Z M50,42H52.2C56.6,42 58.5,44.8 58.5,49.5C58.5,54.2 56.6,57 52.2,57H50Z"/>
     <rect x="38.5" y="70" width="31" height="2" rx="1" fill="#EE6055"/>
   </g>
