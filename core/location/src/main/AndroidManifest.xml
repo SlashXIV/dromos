@@ -4,4 +4,6 @@
     <!-- Android 12+ exige de demander les deux ; l'utilisateur peut n'accorder que l'approximative. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
+    <!-- Facultatif : sans baromètre, le dénivelé vient de l'altitude GPS, moins précise. -->
+    <uses-feature android:name="android.hardware.sensor.barometer" android:required="false" />
 </manifest>

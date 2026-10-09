@@ -56,6 +56,7 @@ internal class GnssLocationSource @Inject constructor(
         altitudeMeters = if (hasAltitude()) altitude else null,
         accuracyMeters = if (hasAccuracy()) accuracy else null,
         speedMetersPerSecond = if (hasSpeed()) speed else null,
+        bearingDegrees = if (hasBearing()) bearing else null,
     )
 
     private companion object {
