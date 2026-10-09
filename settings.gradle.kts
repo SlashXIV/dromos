@@ -28,6 +28,7 @@ include(":core:data")
 include(":core:ui")
 include(":core:location")
 include(":core:tracking")
+include(":core:map")
 
 include(":feature:history")
 include(":feature:settings")

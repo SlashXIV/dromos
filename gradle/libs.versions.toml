@@ -21,6 +21,12 @@ navigationCompose = "2.10.2"
 room = "2.8.5"
 datastore = "1.2.1"
 
+# --- Cartographie ---
+# MapLibre Native (licence BSD) : rendu vectoriel, aucune télémétrie, aucune clé.
+# Variante OpenGL ES : la variante par défaut (Vulkan) plante sur l'émulateur et sur
+# les GPU dont le pilote Vulkan est incomplet ; OpenGL ES est disponible partout.
+maplibre = "13.6.1"
+
 # --- DI ---
 hilt = "2.60.1"
 hiltNavigationCompose = "1.4.0"
@@ -72,6 +78,9 @@ androidx-room-testing = { group = "androidx.room", name = "room-testing", versio
 
 # --- DataStore ---
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
+
+# --- Cartographie ---
+maplibre-android = { group = "org.maplibre.gl", name = "android-sdk-opengl", version.ref = "maplibre" }
 
 # --- Hilt ---
 javax-inject = { group = "javax.inject", name = "javax.inject", version.ref = "javaxInject" }

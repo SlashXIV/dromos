@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="map_attribution" translatable="false">© OpenStreetMap · OpenFreeMap</string>
+    <string name="map_recenter">Recentrer sur ma position</string>
+    <string name="map_offline">Fond de carte désactivé : tracé seul</string>
+    <string name="map_unavailable">Carte indisponible hors connexion : tracé seul</string>
+    <string name="map_waiting">En attente du signal GPS…</string>
+</resources>

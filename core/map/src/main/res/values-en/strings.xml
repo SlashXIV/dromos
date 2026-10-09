@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="map_recenter">Recenter on my position</string>
+    <string name="map_offline">Basemap disabled: route only</string>
+    <string name="map_unavailable">Map unavailable offline: route only</string>
+    <string name="map_waiting">Waiting for GPS signal…</string>
+</resources>
