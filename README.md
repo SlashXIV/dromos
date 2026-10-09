@@ -27,7 +27,7 @@ téléphone. Pas de compte, pas de cloud, pas de services Google : tes tracés t
 Prérequis : JDK 17 ou plus (le `jbr` d'Android Studio convient).
 
 ```sh
-./gradlew testDebugUnitTest lintDebug assembleDebug
+./gradlew testDebugUnitTest :core:domain:test lintDebug assembleDebug
 ```
 
 ## Licence

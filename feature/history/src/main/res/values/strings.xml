@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="history_title">Historique</string>
+    <string name="history_empty_title">Aucune sortie pour l’instant</string>
+    <string name="history_empty_body">Tes sorties enregistrées apparaîtront ici, avec leur tracé et leurs splits.</string>
+</resources>
