@@ -6,4 +6,7 @@
     <!-- Unités : espace insécable avant l'unité. -->
     <string name="unit_km">%1$s km</string>
     <string name="unit_pace">%1$s /km</string>
+
+    <string name="palette_coral">Corail</string>
+    <string name="palette_signal">Signal</string>
 </resources>
