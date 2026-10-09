@@ -8,7 +8,7 @@ plugins {
 
 // Version publiée : la SEULE ligne à modifier lors d'une release.
 // Règle : correctif = patch, nouveau jalon = mineure, 1.0.0 = cahier des charges complet.
-val dromosVersion = "0.4.0"
+val dromosVersion = "0.5.0"
 
 android {
     namespace = "com.gabrielifrim.dromos"
@@ -47,6 +47,14 @@ android {
         }
         debug {
             applicationIdSuffix = ".debug"
+        }
+    }
+
+    // MapLibre embarque son moteur natif pour quatre architectures. La publication
+    // ne garde que celles des téléphones (ARM) ; le debug garde x86 pour l'émulateur.
+    androidComponents {
+        onVariants(selector().withBuildType("release")) { variant ->
+            variant.packaging.jniLibs.excludes.addAll(listOf("lib/x86/**", "lib/x86_64/**"))
         }
     }
 
