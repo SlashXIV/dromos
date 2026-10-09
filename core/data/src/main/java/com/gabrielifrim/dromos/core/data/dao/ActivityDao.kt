@@ -17,14 +17,26 @@ interface ActivityDao {
     @Insert
     suspend fun insert(activity: ActivityEntity): Long
 
-    @Query("UPDATE activity SET distance_m = :distanceMeters, moving_duration_ms = :movingDurationMillis WHERE id = :id")
-    suspend fun updateProgress(id: Long, distanceMeters: Double, movingDurationMillis: Long)
+    @Query(
+        "UPDATE activity SET distance_m = :distanceMeters, moving_duration_ms = :movingDurationMillis, " +
+            "elevation_gain_m = :gain, elevation_loss_m = :loss WHERE id = :id",
+    )
+    suspend fun updateProgress(id: Long, distanceMeters: Double, movingDurationMillis: Long, gain: Double, loss: Double)
 
     @Query(
         "UPDATE activity SET status = :status, ended_at = :endedAtMillis, distance_m = :distanceMeters, " +
-            "moving_duration_ms = :movingDurationMillis WHERE id = :id",
+            "moving_duration_ms = :movingDurationMillis, elevation_gain_m = :gain, elevation_loss_m = :loss " +
+            "WHERE id = :id",
     )
-    suspend fun finish(id: Long, status: String, endedAtMillis: Long, distanceMeters: Double, movingDurationMillis: Long)
+    suspend fun finish(
+        id: Long,
+        status: String,
+        endedAtMillis: Long,
+        distanceMeters: Double,
+        movingDurationMillis: Long,
+        gain: Double,
+        loss: Double,
+    )
 
     @Query("DELETE FROM activity WHERE id = :id")
     suspend fun delete(id: Long)

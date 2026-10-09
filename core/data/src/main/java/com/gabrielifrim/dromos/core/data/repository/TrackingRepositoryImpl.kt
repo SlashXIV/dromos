@@ -11,8 +11,8 @@ import com.gabrielifrim.dromos.core.domain.model.Activity
 import com.gabrielifrim.dromos.core.domain.model.ActivityStatus
 import com.gabrielifrim.dromos.core.domain.model.ActivityType
 import com.gabrielifrim.dromos.core.domain.model.TrackPoint
+import com.gabrielifrim.dromos.core.domain.model.TrackTotals
 import com.gabrielifrim.dromos.core.domain.repository.TrackingRepository
-import java.time.Duration
 import java.time.Instant
 import javax.inject.Inject
 
@@ -38,32 +38,31 @@ internal class TrackingRepositoryImpl @Inject constructor(
             ),
         )
 
-    override suspend fun appendPoints(
-        activityId: Long,
-        points: List<TrackPoint>,
-        distanceMeters: Double,
-        movingDuration: Duration,
-    ) {
+    override suspend fun appendPoints(activityId: Long, points: List<TrackPoint>, totals: TrackTotals) {
         // Une seule transaction : après une mort du processus, les totaux
         // correspondent toujours exactement aux points présents.
         database.withTransaction {
             if (points.isNotEmpty()) trackPointDao.insertAll(points.map { it.toEntity(activityId) })
-            activityDao.updateProgress(activityId, distanceMeters, movingDuration.toMillis())
+            activityDao.updateProgress(
+                id = activityId,
+                distanceMeters = totals.distanceMeters,
+                movingDurationMillis = totals.movingDuration.toMillis(),
+                gain = totals.elevationGainMeters,
+                loss = totals.elevationLossMeters,
+            )
         }
     }
 
-    override suspend fun finishActivity(
-        activityId: Long,
-        endedAt: Instant,
-        distanceMeters: Double,
-        movingDuration: Duration,
-    ) = activityDao.finish(
-        id = activityId,
-        status = ActivityStatus.FINISHED.name,
-        endedAtMillis = endedAt.toEpochMilli(),
-        distanceMeters = distanceMeters,
-        movingDurationMillis = movingDuration.toMillis(),
-    )
+    override suspend fun finishActivity(activityId: Long, endedAt: Instant, totals: TrackTotals) =
+        activityDao.finish(
+            id = activityId,
+            status = ActivityStatus.FINISHED.name,
+            endedAtMillis = endedAt.toEpochMilli(),
+            distanceMeters = totals.distanceMeters,
+            movingDurationMillis = totals.movingDuration.toMillis(),
+            gain = totals.elevationGainMeters,
+            loss = totals.elevationLossMeters,
+        )
 
     override suspend fun deleteActivity(activityId: Long) = activityDao.delete(activityId)
 

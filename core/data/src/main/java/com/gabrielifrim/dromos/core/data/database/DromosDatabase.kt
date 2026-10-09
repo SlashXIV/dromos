@@ -9,7 +9,7 @@ import com.gabrielifrim.dromos.core.data.database.entity.TrackPointEntity
 
 @Database(
     entities = [ActivityEntity::class, TrackPointEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 abstract class DromosDatabase : RoomDatabase() {

@@ -29,4 +29,6 @@ data class TrackPointEntity(
     @ColumnInfo(name = "accuracy_m") val accuracyMeters: Float?,
     @ColumnInfo(name = "speed_mps") val speedMetersPerSecond: Float?,
     val segment: Int,
+    @ColumnInfo(name = "bearing_deg") val bearingDegrees: Float? = null,
+    @ColumnInfo(name = "baro_altitude_m") val baroAltitudeMeters: Double? = null,
 )

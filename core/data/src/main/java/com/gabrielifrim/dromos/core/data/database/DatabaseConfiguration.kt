@@ -5,8 +5,20 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import java.util.concurrent.Executors
 
-/** Migrations explicites, dans l'ordre. Vide tant que le schéma est en version 1. */
-internal val DROMOS_MIGRATIONS: Array<Migration> = emptyArray()
+/**
+ * v1 → v2 : cap GNSS et altitude barométrique par point (jalon « Métriques
+ * fiables »). Colonnes nullables : les points existants restent valides, ils
+ * seront simplement calculés sans Doppler ni baromètre.
+ */
+internal val MIGRATION_1_2 = object : Migration(1, 2) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE track_point ADD COLUMN bearing_deg REAL")
+        db.execSQL("ALTER TABLE track_point ADD COLUMN baro_altitude_m REAL")
+    }
+}
+
+/** Migrations explicites, dans l'ordre. */
+internal val DROMOS_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2)
 
 /**
  * Configuration de la base, définie une seule fois : les tests instrumentés

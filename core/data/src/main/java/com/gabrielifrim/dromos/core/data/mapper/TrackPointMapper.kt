@@ -12,6 +12,8 @@ internal fun TrackPointEntity.toDomain(): TrackPoint = TrackPoint(
     accuracyMeters = accuracyMeters,
     speedMetersPerSecond = speedMetersPerSecond,
     segment = segment,
+    bearingDegrees = bearingDegrees,
+    baroAltitudeMeters = baroAltitudeMeters,
 )
 
 internal fun TrackPoint.toEntity(activityId: Long): TrackPointEntity = TrackPointEntity(
@@ -23,4 +25,6 @@ internal fun TrackPoint.toEntity(activityId: Long): TrackPointEntity = TrackPoin
     accuracyMeters = accuracyMeters,
     speedMetersPerSecond = speedMetersPerSecond,
     segment = segment,
+    bearingDegrees = bearingDegrees,
+    baroAltitudeMeters = baroAltitudeMeters,
 )
