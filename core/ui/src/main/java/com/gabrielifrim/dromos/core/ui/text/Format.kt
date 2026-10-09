@@ -45,6 +45,12 @@ object Format {
     /** Dénivelé arrondi au mètre : « 84 ». */
     fun meters(value: Double): String = Math.round(value).toString()
 
+    /** 312,4 s/km → « 5:12 ». */
+    fun paceFromSeconds(secondsPerKm: Double): String {
+        val s = Math.round(secondsPerKm)
+        return "%d:%02d".format(s / 60, s % 60)
+    }
+
     private const val MIN_METERS_FOR_PACE = 10.0
     private const val MIN_SPEED_FOR_PACE = 0.5f
 }

@@ -9,4 +9,14 @@
     <string name="palette_coral">Coral</string>
     <string name="palette_signal">Signal</string>
     <string name="unit_elevation_gain">+%1$s m</string>
+    <string name="title_run_morning">Morning run</string>
+    <string name="title_run_afternoon">Afternoon run</string>
+    <string name="title_run_evening">Evening run</string>
+    <string name="title_run_night">Night run</string>
+    <string name="title_walk_morning">Morning walk</string>
+    <string name="title_walk_afternoon">Afternoon walk</string>
+    <string name="title_walk_evening">Evening walk</string>
+    <string name="title_walk_night">Night walk</string>
+    <string name="unit_elevation_loss">−%1$s m</string>
+    <string name="unit_meters">%1$s m</string>
 </resources>

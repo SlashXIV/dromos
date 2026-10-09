@@ -10,4 +10,14 @@
     <string name="palette_coral">Corail</string>
     <string name="palette_signal">Signal</string>
     <string name="unit_elevation_gain">+%1$s m</string>
+    <string name="title_run_morning">Course du matin</string>
+    <string name="title_run_afternoon">Course de l’après-midi</string>
+    <string name="title_run_evening">Course du soir</string>
+    <string name="title_run_night">Course de nuit</string>
+    <string name="title_walk_morning">Marche du matin</string>
+    <string name="title_walk_afternoon">Marche de l’après-midi</string>
+    <string name="title_walk_evening">Marche du soir</string>
+    <string name="title_walk_night">Marche de nuit</string>
+    <string name="unit_elevation_loss">−%1$s m</string>
+    <string name="unit_meters">%1$s m</string>
 </resources>

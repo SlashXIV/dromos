@@ -35,6 +35,7 @@ import org.maplibre.android.MapLibre
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
+import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
@@ -57,6 +58,8 @@ import org.maplibre.geojson.Point
  * premier affichage), on bascule sur [TraceCanvas] : la sortie reste visible.
  *
  * @param online false : aucune requête réseau, tracé seul.
+ * @param live true : la caméra suit la dernière position (sortie en cours) ;
+ *   false : elle cadre le tracé entier (sortie terminée).
  */
 @Composable
 fun TrackMap(
@@ -64,6 +67,7 @@ fun TrackMap(
     traceColor: Color,
     online: Boolean,
     modifier: Modifier = Modifier,
+    live: Boolean = true,
 ) {
     var failed by remember { mutableStateOf(false) }
     if (segments.all { it.isEmpty() }) {
@@ -169,10 +173,20 @@ fun TrackMap(
     }
 
     val last = segments.lastOrNull()?.lastOrNull()
-    LaunchedEffect(map, last, follow) {
+    LaunchedEffect(map, last, follow, style) {
         val m = map ?: return@LaunchedEffect
         val target = last ?: return@LaunchedEffect
         if (!follow) return@LaunchedEffect
+        if (!live) {
+            // Sortie terminée : tout le tracé dans le cadre.
+            val all = segments.flatten().map { it.toLatLng() }.distinct()
+            if (all.size >= 2) {
+                m.moveCamera(CameraUpdateFactory.newLatLngBounds(LatLngBounds.Builder().includes(all).build(), FIT_PADDING_PX))
+            } else {
+                m.moveCamera(CameraUpdateFactory.newLatLngZoom(target.toLatLng(), FOLLOW_ZOOM))
+            }
+            return@LaunchedEffect
+        }
         val zoom = m.cameraPosition.zoom.takeIf { it >= MIN_FOLLOW_ZOOM } ?: FOLLOW_ZOOM
         m.easeCamera(
             CameraUpdateFactory.newCameraPosition(CameraPosition.Builder().target(target.toLatLng()).zoom(zoom).build()),
@@ -249,3 +263,4 @@ private const val POSITION_LAYER = "dromos-position"
 private const val FOLLOW_ZOOM = 16.0
 private const val MIN_FOLLOW_ZOOM = 12.0
 private const val CAMERA_MS = 600
+private const val FIT_PADDING_PX = 80

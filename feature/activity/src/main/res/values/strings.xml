@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="activity_back">Retour</string>
+    <string name="activity_edit">Modifier</string>
+    <string name="activity_delete">Supprimer</string>
+    <string name="activity_finished">Sortie enregistrée. Bravo !</string>
+    <string name="activity_date_time">%1$s à %2$s</string>
+    <string name="activity_distance">Distance</string>
+    <string name="activity_moving_time">Durée en mouvement</string>
+    <string name="activity_avg_pace">Allure moyenne</string>
+    <string name="activity_elapsed_time">Durée totale</string>
+    <string name="activity_gain">Dénivelé +</string>
+    <string name="activity_loss">Dénivelé −</string>
+    <string name="activity_splits">Splits au kilomètre</string>
+    <string name="activity_split_km">Km</string>
+    <string name="activity_split_pace">Allure</string>
+    <string name="activity_split_gain">D+</string>
+    <string name="activity_split_partial">%1$s</string>
+    <string name="activity_delete_title">Supprimer cette sortie ?</string>
+    <string name="activity_delete_body">Son tracé et ses mesures seront effacés définitivement de ce téléphone.</string>
+    <string name="activity_delete_confirm">Supprimer</string>
+    <string name="activity_cancel">Annuler</string>
+    <string name="activity_edit_title">Modifier la sortie</string>
+    <string name="activity_field_title">Titre</string>
+    <string name="activity_field_notes">Notes</string>
+    <string name="activity_save">Enregistrer</string>
+</resources>

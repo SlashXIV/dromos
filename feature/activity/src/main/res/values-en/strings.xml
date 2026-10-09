@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="activity_back">Back</string>
+    <string name="activity_edit">Edit</string>
+    <string name="activity_delete">Delete</string>
+    <string name="activity_finished">Activity saved. Well done!</string>
+    <string name="activity_date_time">%1$s at %2$s</string>
+    <string name="activity_distance">Distance</string>
+    <string name="activity_moving_time">Moving time</string>
+    <string name="activity_avg_pace">Average pace</string>
+    <string name="activity_elapsed_time">Elapsed time</string>
+    <string name="activity_gain">Elevation gain</string>
+    <string name="activity_loss">Elevation loss</string>
+    <string name="activity_splits">Splits per kilometer</string>
+    <string name="activity_split_km">Km</string>
+    <string name="activity_split_pace">Pace</string>
+    <string name="activity_split_gain">Gain</string>
+    <string name="activity_split_partial">%1$s</string>
+    <string name="activity_delete_title">Delete this activity?</string>
+    <string name="activity_delete_body">Its route and measurements will be permanently erased from this phone.</string>
+    <string name="activity_delete_confirm">Delete</string>
+    <string name="activity_cancel">Cancel</string>
+    <string name="activity_edit_title">Edit activity</string>
+    <string name="activity_field_title">Title</string>
+    <string name="activity_field_notes">Notes</string>
+    <string name="activity_save">Save</string>
+</resources>
