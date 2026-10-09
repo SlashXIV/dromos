@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="record_title">Nouvelle sortie</string>
+    <string name="record_back">Retour</string>
+    <string name="record_start">Démarrer</string>
+    <string name="record_pause">Pause</string>
+    <string name="record_resume">Reprendre</string>
+    <string name="record_stop">Terminer</string>
+    <string name="record_stop_title">Terminer la sortie ?</string>
+    <string name="record_stop_body">Elle sera enregistrée dans ton historique.</string>
+    <string name="record_stop_confirm">Enregistrer</string>
+    <string name="record_stop_cancel">Continuer</string>
+    <string name="record_discard">Abandonner</string>
+    <string name="record_permission_denied">Dromos a besoin de la position précise pour mesurer ta sortie. Tu peux l’autoriser dans les réglages Android.</string>
+    <string name="record_recovered">Ta sortie a été interrompue et récupérée. Elle est en pause : reprends-la ou termine-la.</string>
+    <string name="record_status_searching">Recherche du signal GPS…</string>
+    <string name="record_status_ok">GPS actif</string>
+    <string name="record_status_accuracy">GPS actif · précision %1$d m</string>
+    <string name="record_status_paused">En pause</string>
+    <string name="record_status_gps_error">Signal GPS indisponible : vérifie la permission et la localisation.</string>
+    <string name="record_metric_duration">Durée</string>
+    <string name="record_metric_distance">Distance</string>
+    <string name="record_metric_avg_pace">Allure moyenne</string>
+    <string name="record_metric_current_pace">Allure instantanée</string>
+    <string name="record_unit_km">km</string>
+    <string name="record_unit_pace">/km</string>
+</resources>

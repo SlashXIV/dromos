@@ -16,6 +16,7 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -42,16 +43,23 @@ import com.gabrielifrim.dromos.core.ui.R as UiR
 
 @Composable
 fun HistoryRoute(
+    trackingActive: Boolean,
+    onOpenRecord: () -> Unit,
     onOpenSettings: () -> Unit,
     viewModel: HistoryViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    HistoryScreen(state, onOpenSettings)
+    HistoryScreen(state, trackingActive, onOpenRecord, onOpenSettings)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HistoryScreen(state: HistoryUiState, onOpenSettings: () -> Unit) {
+fun HistoryScreen(
+    state: HistoryUiState,
+    trackingActive: Boolean,
+    onOpenRecord: () -> Unit,
+    onOpenSettings: () -> Unit,
+) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -60,6 +68,15 @@ fun HistoryScreen(state: HistoryUiState, onOpenSettings: () -> Unit) {
                     IconButton(onClick = onOpenSettings) {
                         Icon(Icons.Outlined.Settings, stringResource(R.string.history_open_settings))
                     }
+                },
+            )
+        },
+        floatingActionButton = {
+            ExtendedFloatingActionButton(
+                onClick = onOpenRecord,
+                icon = { Icon(Icons.AutoMirrored.Filled.DirectionsRun, contentDescription = null) },
+                text = {
+                    Text(stringResource(if (trackingActive) R.string.history_tracking_in_progress else R.string.history_new_activity))
                 },
             )
         },
@@ -77,7 +94,7 @@ fun HistoryScreen(state: HistoryUiState, onOpenSettings: () -> Unit) {
             )
 
             else -> LazyColumn(
-                contentPadding = PaddingValues(16.dp),
+                contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 96.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.padding(padding),
             ) {

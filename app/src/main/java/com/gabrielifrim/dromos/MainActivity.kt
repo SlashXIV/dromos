@@ -13,10 +13,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gabrielifrim.dromos.core.domain.model.ThemeMode
+import com.gabrielifrim.dromos.core.domain.tracking.TrackingState
 import com.gabrielifrim.dromos.core.ui.theme.DromosTheme
 import com.gabrielifrim.dromos.core.ui.theme.Palettes
 import com.gabrielifrim.dromos.navigation.DromosNavHost
@@ -32,12 +34,19 @@ class MainActivity : ComponentActivity() {
         // Avant super.onCreate : le thème de démarrage doit être remplacé pendant
         // que la fenêtre se crée. Il reste affiché jusqu'à la lecture des réglages,
         // pour ne jamais montrer un flash de la mauvaise palette.
-        installSplashScreen().setKeepOnScreenCondition { viewModel.appearance.value == null }
+        installSplashScreen().setKeepOnScreenCondition {
+            viewModel.appearance.value == null || !viewModel.recoveryChecked.value
+        }
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent {
             val appearance by viewModel.appearance.collectAsStateWithLifecycle()
+            val recoveryChecked by viewModel.recoveryChecked.collectAsStateWithLifecycle()
+            val tracking by viewModel.trackingState.collectAsStateWithLifecycle()
             val settings = appearance ?: return@setContent
+            if (!recoveryChecked) return@setContent
+            // Lu une seule fois : la destination de départ ne doit pas changer en cours de route.
+            val openOnRecord = remember { tracking is TrackingState.Active }
             val dark = when (settings.themeMode) {
                 ThemeMode.SYSTEM -> isSystemInDarkTheme()
                 ThemeMode.LIGHT -> false
@@ -54,7 +63,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,
                 ) {
-                    DromosNavHost()
+                    DromosNavHost(trackingActive = tracking is TrackingState.Active, openOnRecord = openOnRecord)
                 }
             }
         }

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="record_title">New activity</string>
+    <string name="record_back">Back</string>
+    <string name="record_start">Start</string>
+    <string name="record_pause">Pause</string>
+    <string name="record_resume">Resume</string>
+    <string name="record_stop">Finish</string>
+    <string name="record_stop_title">Finish this activity?</string>
+    <string name="record_stop_body">It will be saved to your history.</string>
+    <string name="record_stop_confirm">Save</string>
+    <string name="record_stop_cancel">Keep going</string>
+    <string name="record_discard">Discard</string>
+    <string name="record_permission_denied">Dromos needs your precise location to measure your activity. You can allow it in Android settings.</string>
+    <string name="record_recovered">Your activity was interrupted and recovered. It is paused: resume or finish it.</string>
+    <string name="record_status_searching">Searching for GPS signal…</string>
+    <string name="record_status_ok">GPS active</string>
+    <string name="record_status_accuracy">GPS active · accuracy %1$d m</string>
+    <string name="record_status_paused">Paused</string>
+    <string name="record_status_gps_error">GPS signal unavailable: check the permission and location settings.</string>
+    <string name="record_metric_duration">Time</string>
+    <string name="record_metric_distance">Distance</string>
+    <string name="record_metric_avg_pace">Average pace</string>
+    <string name="record_metric_current_pace">Current pace</string>
+    <string name="record_unit_km">km</string>
+    <string name="record_unit_pace">/km</string>
+</resources>
