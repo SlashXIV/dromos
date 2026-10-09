@@ -37,6 +37,7 @@ import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.android.maps.MapLibreMap
+import org.maplibre.android.maps.MapLibreMapOptions
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.layers.CircleLayer
@@ -88,9 +89,13 @@ fun TrackMap(
     val context = LocalContext.current
     val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     val casingColor = if (dark) Color(0xFF111315) else Color.White
+    // Couleur affichée pendant le chargement du style : celle du thème, pour
+    // éviter un rectangle beige en thème sombre.
+    val loadColor = MaterialTheme.colorScheme.surfaceContainer.toArgb()
     val mapView = remember {
         MapLibre.getInstance(context)
-        MapView(context).apply { onCreate(null) }
+        MapView(context, MapLibreMapOptions.createFromAttributes(context).foregroundLoadColor(loadColor))
+            .apply { onCreate(null) }
     }
     var map by remember { mutableStateOf<MapLibreMap?>(null) }
     var style by remember { mutableStateOf<Style?>(null) }

@@ -20,4 +20,5 @@
     <string name="title_walk_night">Marche de nuit</string>
     <string name="unit_elevation_loss">−%1$s m</string>
     <string name="unit_meters">%1$s m</string>
+    <string name="palette_nocturne">Nocturne</string>
 </resources>
