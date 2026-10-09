@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.gabrielifrim.dromos.core.domain.model.AppearanceSettings
 import com.gabrielifrim.dromos.core.domain.model.MapPreferences
+import com.gabrielifrim.dromos.core.domain.model.MotionPreference
 import com.gabrielifrim.dromos.core.domain.model.ThemeMode
 import com.gabrielifrim.dromos.core.domain.model.TrackingPreferences
 import com.gabrielifrim.dromos.core.domain.repository.SettingsRepository
@@ -27,6 +28,9 @@ internal class SettingsRepositoryImpl @Inject constructor(
                 themeMode = prefs[THEME_MODE]
                     ?.let { stored -> ThemeMode.entries.firstOrNull { it.name == stored } }
                     ?: ThemeMode.SYSTEM,
+                motion = prefs[MOTION]
+                    ?.let { stored -> MotionPreference.entries.firstOrNull { it.name == stored } }
+                    ?: MotionPreference.EXPRESSIVE,
             )
         }
         .distinctUntilChanged()
@@ -37,6 +41,10 @@ internal class SettingsRepositoryImpl @Inject constructor(
 
     override suspend fun setThemeMode(mode: ThemeMode) {
         dataStore.edit { it[THEME_MODE] = mode.name }
+    }
+
+    override suspend fun setMotion(motion: MotionPreference) {
+        dataStore.edit { it[MOTION] = motion.name }
     }
 
     override val tracking: Flow<TrackingPreferences> = dataStore.data
@@ -67,6 +75,7 @@ internal class SettingsRepositoryImpl @Inject constructor(
     private companion object {
         val PALETTE = stringPreferencesKey("palette")
         val THEME_MODE = stringPreferencesKey("theme_mode")
+        val MOTION = stringPreferencesKey("ambiance")
         val AUTO_PAUSE = booleanPreferencesKey("pause_auto")
         val ONLINE_BASEMAP = booleanPreferencesKey("carte_en_ligne")
         val BATTERY_PROMPT_DISMISSED = booleanPreferencesKey("batterie_ne_plus_demander")

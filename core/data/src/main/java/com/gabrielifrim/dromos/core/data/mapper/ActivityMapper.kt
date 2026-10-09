@@ -20,6 +20,7 @@ internal fun ActivityEntity.toDomain(): Activity = Activity(
     title = title,
     notes = notes,
     autoPause = autoPause,
+    preview = PreviewCodec.decode(previewPolyline),
 )
 
 internal fun Activity.toEntity(): ActivityEntity = ActivityEntity(
@@ -35,4 +36,5 @@ internal fun Activity.toEntity(): ActivityEntity = ActivityEntity(
     title = title,
     notes = notes,
     autoPause = autoPause,
+    previewPolyline = preview?.let(PreviewCodec::encode),
 )

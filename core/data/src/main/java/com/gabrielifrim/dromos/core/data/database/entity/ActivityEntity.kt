@@ -26,4 +26,6 @@ data class ActivityEntity(
     val title: String?,
     val notes: String?,
     @ColumnInfo(name = "auto_pause", defaultValue = "1") val autoPause: Boolean = true,
+    /** Tracé simplifié encodé (cf. PreviewCodec) ; null tant qu'il n'est pas calculé. */
+    @ColumnInfo(name = "preview_polyline") val previewPolyline: String? = null,
 )

@@ -5,11 +5,13 @@ import com.gabrielifrim.dromos.core.data.dao.ActivityDao
 import com.gabrielifrim.dromos.core.data.dao.TrackPointDao
 import com.gabrielifrim.dromos.core.data.database.DromosDatabase
 import com.gabrielifrim.dromos.core.data.database.entity.ActivityEntity
+import com.gabrielifrim.dromos.core.data.mapper.PreviewCodec
 import com.gabrielifrim.dromos.core.data.mapper.toDomain
 import com.gabrielifrim.dromos.core.data.mapper.toEntity
 import com.gabrielifrim.dromos.core.domain.model.Activity
 import com.gabrielifrim.dromos.core.domain.model.ActivityStatus
 import com.gabrielifrim.dromos.core.domain.model.ActivityType
+import com.gabrielifrim.dromos.core.domain.model.GeoPoint
 import com.gabrielifrim.dromos.core.domain.model.TrackPoint
 import com.gabrielifrim.dromos.core.domain.model.TrackTotals
 import com.gabrielifrim.dromos.core.domain.repository.TrackingRepository
@@ -54,16 +56,20 @@ internal class TrackingRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun finishActivity(activityId: Long, endedAt: Instant, totals: TrackTotals) =
-        activityDao.finish(
-            id = activityId,
-            status = ActivityStatus.FINISHED.name,
-            endedAtMillis = endedAt.toEpochMilli(),
-            distanceMeters = totals.distanceMeters,
-            movingDurationMillis = totals.movingDuration.toMillis(),
-            gain = totals.elevationGainMeters,
-            loss = totals.elevationLossMeters,
-        )
+    override suspend fun finishActivity(activityId: Long, endedAt: Instant, totals: TrackTotals, preview: List<GeoPoint>) {
+        database.withTransaction {
+            activityDao.finish(
+                id = activityId,
+                status = ActivityStatus.FINISHED.name,
+                endedAtMillis = endedAt.toEpochMilli(),
+                distanceMeters = totals.distanceMeters,
+                movingDurationMillis = totals.movingDuration.toMillis(),
+                gain = totals.elevationGainMeters,
+                loss = totals.elevationLossMeters,
+            )
+            activityDao.updatePreview(activityId, PreviewCodec.encode(preview))
+        }
+    }
 
     override suspend fun deleteActivity(activityId: Long) = activityDao.delete(activityId)
 

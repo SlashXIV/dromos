@@ -2,10 +2,13 @@ package com.gabrielifrim.dromos.core.data.repository
 
 import com.gabrielifrim.dromos.core.data.dao.ActivityDao
 import com.gabrielifrim.dromos.core.data.dao.TrackPointDao
+import com.gabrielifrim.dromos.core.data.mapper.PreviewCodec
 import com.gabrielifrim.dromos.core.data.mapper.toDomain
+import com.gabrielifrim.dromos.core.domain.geo.TraceSimplifier
 import com.gabrielifrim.dromos.core.domain.model.Activity
 import com.gabrielifrim.dromos.core.domain.model.ActivityStatus
 import com.gabrielifrim.dromos.core.domain.model.ActivityType
+import com.gabrielifrim.dromos.core.domain.model.GeoPoint
 import com.gabrielifrim.dromos.core.domain.model.TrackPoint
 import com.gabrielifrim.dromos.core.domain.repository.ActivityRepository
 import kotlinx.coroutines.flow.Flow
@@ -35,4 +38,11 @@ internal class ActivityRepositoryImpl @Inject constructor(
 
     // Les points suivent par ON DELETE CASCADE.
     override suspend fun delete(id: Long) = activityDao.delete(id)
+
+    override suspend fun backfillPreviews() {
+        activityDao.idsWithoutPreview(ActivityStatus.FINISHED.name).forEach { id ->
+            val points = trackPointDao.getForActivity(id).map { GeoPoint(it.latitude, it.longitude) }
+            activityDao.updatePreview(id, PreviewCodec.encode(TraceSimplifier.simplify(points)))
+        }
+    }
 }

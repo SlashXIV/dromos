@@ -7,6 +7,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.gabrielifrim.dromos.core.data.database.DromosDatabase
 import com.gabrielifrim.dromos.core.data.database.MIGRATION_1_2
 import com.gabrielifrim.dromos.core.data.database.MIGRATION_2_3
+import com.gabrielifrim.dromos.core.data.database.MIGRATION_3_4
 import com.google.common.truth.Truth.assertThat
 import org.junit.Rule
 import org.junit.Test
@@ -83,6 +84,27 @@ class MigrationTest {
             assertThat(c.moveToFirst()).isTrue()
             assertThat(c.getInt(0)).isEqualTo(1)
             assertThat(c.getDouble(1)).isEqualTo(2400.0)
+        }
+    }
+
+    @Test
+    fun la_migration_3_4_laisse_l_apercu_a_calculer() {
+        helper.createDatabase(databaseName, 3).use { db ->
+            db.execSQL(
+                """
+                INSERT INTO activity (id, type, status, started_at, ended_at, distance_m, moving_duration_ms,
+                    elevation_gain_m, elevation_loss_m, title, notes, auto_pause)
+                VALUES (9, 'RUN', 'FINISHED', 1760000000000, 1760001800000, 5000.0, 1500000, 20.0, 18.0, 'Test', NULL, 1)
+                """.trimIndent(),
+            )
+        }
+
+        val db = helper.runMigrationsAndValidate(databaseName, 4, true, MIGRATION_3_4)
+
+        db.query("SELECT preview_polyline, title FROM activity WHERE id = 9").use { c ->
+            assertThat(c.moveToFirst()).isTrue()
+            assertThat(c.isNull(0)).isTrue()
+            assertThat(c.getString(1)).isEqualTo("Test")
         }
     }
 }

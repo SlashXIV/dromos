@@ -28,8 +28,19 @@ internal val MIGRATION_2_3 = object : Migration(2, 3) {
     }
 }
 
+/**
+ * v3 → v4 : aperçu simplifié du tracé, pour les miniatures de l'historique sans
+ * relire des milliers de points. Les sorties existantes sont complétées au
+ * premier affichage de l'historique (ActivityRepository.backfillPreviews).
+ */
+internal val MIGRATION_3_4 = object : Migration(3, 4) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE activity ADD COLUMN preview_polyline TEXT")
+    }
+}
+
 /** Migrations explicites, dans l'ordre. */
-internal val DROMOS_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
+internal val DROMOS_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
 
 /**
  * Configuration de la base, définie une seule fois : les tests instrumentés

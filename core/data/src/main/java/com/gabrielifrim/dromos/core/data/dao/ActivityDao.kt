@@ -17,6 +17,12 @@ interface ActivityDao {
     @Query("SELECT * FROM activity WHERE id = :id")
     fun observeById(id: Long): Flow<ActivityEntity?>
 
+    @Query("SELECT id FROM activity WHERE status = :status AND preview_polyline IS NULL")
+    suspend fun idsWithoutPreview(status: String): List<Long>
+
+    @Query("UPDATE activity SET preview_polyline = :preview WHERE id = :id")
+    suspend fun updatePreview(id: Long, preview: String)
+
     @Query("UPDATE activity SET title = :title, notes = :notes WHERE id = :id")
     suspend fun updateDetails(id: Long, title: String?, notes: String?)
 
