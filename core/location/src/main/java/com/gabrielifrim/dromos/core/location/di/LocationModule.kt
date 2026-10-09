@@ -1,0 +1,15 @@
+package com.gabrielifrim.dromos.core.location.di
+
+import com.gabrielifrim.dromos.core.domain.location.LocationSource
+import com.gabrielifrim.dromos.core.location.GnssLocationSource
+import dagger.Binds
+import dagger.Module
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
+
+@Module
+@InstallIn(SingletonComponent::class)
+internal abstract class LocationModule {
+    @Binds
+    abstract fun bindLocationSource(impl: GnssLocationSource): LocationSource
+}
