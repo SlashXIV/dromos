@@ -1,5 +1,6 @@
 plugins {
     id("dromos.android.library")
+    id("dromos.android.compose")
     id("dromos.android.hilt")
 }
 

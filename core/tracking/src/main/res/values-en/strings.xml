@@ -7,4 +7,10 @@
     <string name="tracking_action_resume">Resume</string>
     <string name="tracking_action_stop">Finish</string>
     <string name="tracking_notification_auto_paused">%1$s · auto-paused</string>
+    <string name="battery_prompt_title">Keep your activity running</string>
+    <string name="battery_prompt_body">To record with the screen off, Android must let Dromos run without battery restrictions.</string>
+    <string name="battery_prompt_manufacturer">On some phones (Xiaomi, Samsung, Huawei…), you also need to allow the app in the manufacturer’s battery saver settings.</string>
+    <string name="battery_prompt_allow">Allow</string>
+    <string name="battery_prompt_manufacturer_button">Manufacturer settings</string>
+    <string name="battery_prompt_never">Don’t ask again</string>
 </resources>
