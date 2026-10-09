@@ -4,6 +4,7 @@ import com.gabrielifrim.dromos.core.domain.ApplicationScope
 import com.gabrielifrim.dromos.core.domain.location.BarometerSource
 import com.gabrielifrim.dromos.core.domain.location.LocationSource
 import com.gabrielifrim.dromos.core.domain.model.ActivityType
+import com.gabrielifrim.dromos.core.domain.model.GeoPoint
 import com.gabrielifrim.dromos.core.domain.model.LocationSample
 import com.gabrielifrim.dromos.core.domain.model.TrackPoint
 import com.gabrielifrim.dromos.core.domain.model.TrackTotals
@@ -47,6 +48,14 @@ class TrackingEngine @Inject constructor(
     private val _state = MutableStateFlow<TrackingState>(TrackingState.Idle)
     val state: StateFlow<TrackingState> = _state.asStateFlow()
 
+    private val _trace = MutableStateFlow<List<List<GeoPoint>>>(emptyList())
+
+    /**
+     * Tracé de la sortie en cours, un segment par période d'enregistrement : la
+     * carte ne relie pas deux segments, comme la distance ne les compte pas.
+     */
+    val trace: StateFlow<List<List<GeoPoint>>> = _trace.asStateFlow()
+
     private val mutex = Mutex()
     private var accumulator = TrackAccumulator()
     private var autoPause = AutoPauseDetector(ActivityType.RUN)
@@ -54,6 +63,7 @@ class TrackingEngine @Inject constructor(
     private var locationJob: Job? = null
     private var barometerJob: Job? = null
     private var latestBaro: Pair<Instant, Double>? = null
+    private var traceSegment: Int? = null
 
     @Volatile
     private var autoPauseEnabled = true
@@ -75,6 +85,8 @@ class TrackingEngine @Inject constructor(
         accumulator = TrackAccumulator()
         autoPause = AutoPauseDetector(type)
         pending.clear()
+        _trace.value = emptyList()
+        traceSegment = null
         _state.value = TrackingState.Active(
             activityId = id, type = type, startedAt = now, paused = false, segment = 0,
             distanceMeters = 0.0, movingBase = Duration.ZERO, runningSince = now,
@@ -133,6 +145,8 @@ class TrackingEngine @Inject constructor(
         )
         flush(final)
         _state.value = TrackingState.Idle
+        _trace.value = emptyList()
+        traceSegment = null
         if (accumulator.pointCount == 0) {
             repository.deleteActivity(active.activityId)
             null
@@ -148,6 +162,8 @@ class TrackingEngine @Inject constructor(
         stopSensors()
         pending.clear()
         _state.value = TrackingState.Idle
+        _trace.value = emptyList()
+        traceSegment = null
         repository.deleteActivity(active.activityId)
     }
 
@@ -165,6 +181,9 @@ class TrackingEngine @Inject constructor(
         accumulator = TrackAccumulator.of(points)
         autoPause = AutoPauseDetector(activity.type)
         pending.clear()
+        _trace.value = points.groupBy { it.segment }.toSortedMap().values
+            .map { segment -> segment.map { GeoPoint(it.latitude, it.longitude) } }
+        traceSegment = points.lastOrNull()?.segment
         _state.value = TrackingState.Active(
             activityId = activity.id,
             type = activity.type,
@@ -234,7 +253,10 @@ class TrackingEngine @Inject constructor(
             baroAltitudeMeters = baro,
         )
         val kept = accumulator.add(point)
-        if (kept) pending += point
+        if (kept) {
+            pending += point
+            appendToTrace(point)
+        }
         var updated = active.copy(
             distanceMeters = accumulator.distanceMeters,
             pointCount = accumulator.pointCount,
@@ -258,6 +280,19 @@ class TrackingEngine @Inject constructor(
         }
         _state.value = updated
         if (pending.size >= FLUSH_EVERY_POINTS) flush(updated)
+    }
+
+    /** Nouveau segment au premier point qui suit une reprise ; sinon, le point prolonge le dernier. */
+    private fun appendToTrace(point: TrackPoint) {
+        val geo = GeoPoint(point.latitude, point.longitude)
+        val current = _trace.value
+        val lastSegment = traceSegment
+        _trace.value = if (current.isEmpty() || lastSegment != point.segment) {
+            current + listOf(listOf(geo))
+        } else {
+            current.dropLast(1) + listOf(current.last() + geo)
+        }
+        traceSegment = point.segment
     }
 
     /** À appeler sous [mutex]. */

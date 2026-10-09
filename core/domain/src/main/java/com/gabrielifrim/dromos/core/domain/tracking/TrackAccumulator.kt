@@ -66,7 +66,7 @@ class TrackAccumulator {
             filter.reset()
             if (previous != null) elevation.reset()
             window.clear()
-        } else if (isJump(previous!!, point)) {
+        } else if (isJump(previous, point)) {
             filter.reset()
             window.clear()
         }

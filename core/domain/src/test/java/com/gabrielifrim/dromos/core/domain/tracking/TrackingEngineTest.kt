@@ -7,6 +7,7 @@ import com.gabrielifrim.dromos.core.domain.model.ActivityStatus
 import com.gabrielifrim.dromos.core.domain.model.ActivityType
 import com.gabrielifrim.dromos.core.domain.model.AppearanceSettings
 import com.gabrielifrim.dromos.core.domain.model.LocationSample
+import com.gabrielifrim.dromos.core.domain.model.MapPreferences
 import com.gabrielifrim.dromos.core.domain.model.ThemeMode
 import com.gabrielifrim.dromos.core.domain.model.TrackPoint
 import com.gabrielifrim.dromos.core.domain.model.TrackTotals
@@ -58,6 +59,8 @@ class TrackingEngineTest {
         override suspend fun setThemeMode(mode: ThemeMode) = Unit
         override val tracking: Flow<TrackingPreferences> = prefs
         override suspend fun setAutoPause(enabled: Boolean) { prefs.value = TrackingPreferences(enabled) }
+        override val map: Flow<MapPreferences> = MutableStateFlow(MapPreferences())
+        override suspend fun setOnlineBasemap(enabled: Boolean) = Unit
     }
 
     private class FakeRepository : TrackingRepository {
@@ -245,6 +248,35 @@ class TrackingEngineTest {
         move(60, 0.0)
         assertThat(engine.active.autoPaused).isFalse()
         assertThat(engine.active.movingDurationAt(clock.instant())).isEqualTo(Duration.ofSeconds(120))
+    }
+
+    @Test
+    fun `le tracé suit les points et se coupe à chaque pause`() = runTest {
+        val engine = engine()
+        engine.start(ActivityType.RUN); runCurrent()
+        move(10, 3.0)
+        engine.pause()
+        north += 500
+        engine.resume(); runCurrent()
+        move(5, 3.0)
+
+        val trace = engine.trace.value
+        assertThat(trace.map { it.size }).containsExactly(10, 5).inOrder()
+        // Le premier point du second segment est 500 m plus au nord : aucun trait ne les relie.
+        assertThat(trace[1].first().latitude).isGreaterThan(trace[0].last().latitude + 400 * degPerMeter)
+    }
+
+    @Test
+    fun `le tracé est reconstitué à la récupération et vidé à la fin`() = runTest {
+        val first = engine()
+        first.start(ActivityType.RUN); runCurrent()
+        move(10, 3.0)
+        val second = engine()
+        second.recover()
+        assertThat(second.trace.value.single()).hasSize(10)
+
+        second.stop()
+        assertThat(second.trace.value).isEmpty()
     }
 
     @Test

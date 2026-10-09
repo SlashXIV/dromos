@@ -1,6 +1,7 @@
 package com.gabrielifrim.dromos.core.domain.repository
 
 import com.gabrielifrim.dromos.core.domain.model.AppearanceSettings
+import com.gabrielifrim.dromos.core.domain.model.MapPreferences
 import com.gabrielifrim.dromos.core.domain.model.ThemeMode
 import com.gabrielifrim.dromos.core.domain.model.TrackingPreferences
 import kotlinx.coroutines.flow.Flow
@@ -15,4 +16,8 @@ interface SettingsRepository {
     val tracking: Flow<TrackingPreferences>
 
     suspend fun setAutoPause(enabled: Boolean)
+
+    val map: Flow<MapPreferences>
+
+    suspend fun setOnlineBasemap(enabled: Boolean)
 }
