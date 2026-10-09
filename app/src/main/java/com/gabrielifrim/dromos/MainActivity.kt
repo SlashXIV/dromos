@@ -19,6 +19,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gabrielifrim.dromos.core.domain.model.ThemeMode
 import com.gabrielifrim.dromos.core.domain.tracking.TrackingState
+import com.gabrielifrim.dromos.core.ui.motion.rememberMotionLevel
 import com.gabrielifrim.dromos.core.ui.theme.DromosTheme
 import com.gabrielifrim.dromos.core.ui.theme.Palettes
 import com.gabrielifrim.dromos.navigation.DromosNavHost
@@ -58,7 +59,8 @@ class MainActivity : ComponentActivity() {
                 val style = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) { dark }
                 enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
             }
-            DromosTheme(palette = Palettes.byId(settings.paletteId), darkTheme = dark) {
+            val motion = rememberMotionLevel(settings.motion)
+            DromosTheme(palette = Palettes.byId(settings.paletteId), darkTheme = dark, motion = motion) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,

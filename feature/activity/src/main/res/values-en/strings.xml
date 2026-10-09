@@ -4,7 +4,7 @@
     <string name="activity_edit">Edit</string>
     <string name="activity_delete">Delete</string>
     <string name="activity_finished">Activity saved. Well done!</string>
-    <string name="activity_date_time">%1$s at %2$s</string>
+    <string name="activity_date_time">%1$s · %2$s</string>
     <string name="activity_distance">Distance</string>
     <string name="activity_moving_time">Moving time</string>
     <string name="activity_avg_pace">Average pace</string>

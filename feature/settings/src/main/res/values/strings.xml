@@ -17,4 +17,9 @@
     <string name="settings_battery">Batterie</string>
     <string name="settings_battery_ok">Sans restriction : la sortie continue écran éteint. Touche pour les réglages du fabricant.</string>
     <string name="settings_battery_restricted">Restreinte : Android peut couper ta sortie écran éteint. Touche pour corriger.</string>
+    <string name="settings_motion">Ambiance</string>
+    <string name="settings_motion_expressive">Expressive</string>
+    <string name="settings_motion_calm">Sobre</string>
+    <string name="settings_motion_expressive_body">Courbes de niveau vivantes, titres qui montent, compteurs et tracés qui se dessinent.</string>
+    <string name="settings_motion_calm_body">Mouvement réduit au strict utile : aucun fond animé, transitions brèves.</string>
 </resources>

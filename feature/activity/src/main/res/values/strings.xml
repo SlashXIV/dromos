@@ -4,7 +4,7 @@
     <string name="activity_edit">Modifier</string>
     <string name="activity_delete">Supprimer</string>
     <string name="activity_finished">Sortie enregistrée. Bravo !</string>
-    <string name="activity_date_time">%1$s à %2$s</string>
+    <string name="activity_date_time">%1$s · %2$s</string>
     <string name="activity_distance">Distance</string>
     <string name="activity_moving_time">Durée en mouvement</string>
     <string name="activity_avg_pace">Allure moyenne</string>

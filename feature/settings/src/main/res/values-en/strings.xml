@@ -17,4 +17,9 @@
     <string name="settings_battery">Battery</string>
     <string name="settings_battery_ok">Unrestricted: tracking keeps running with the screen off. Tap for manufacturer settings.</string>
     <string name="settings_battery_restricted">Restricted: Android may stop tracking with the screen off. Tap to fix.</string>
+    <string name="settings_motion">Ambience</string>
+    <string name="settings_motion_expressive">Expressive</string>
+    <string name="settings_motion_calm">Calm</string>
+    <string name="settings_motion_expressive_body">Living contour lines, rising titles, counters and routes that draw themselves.</string>
+    <string name="settings_motion_calm_body">Motion kept to the essentials: no animated backgrounds, short transitions.</string>
 </resources>

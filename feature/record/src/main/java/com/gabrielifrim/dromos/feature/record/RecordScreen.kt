@@ -8,6 +8,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Pause
@@ -63,6 +65,7 @@ import com.gabrielifrim.dromos.core.map.TrackMap
 import com.gabrielifrim.dromos.core.tracking.BatteryOptimization
 import com.gabrielifrim.dromos.core.tracking.BatteryPromptDialog
 import com.gabrielifrim.dromos.core.ui.theme.DromosTheme
+import com.gabrielifrim.dromos.core.ui.visual.TelemetryLabel
 import com.gabrielifrim.dromos.core.ui.text.Format
 import com.gabrielifrim.dromos.core.ui.text.labelRes
 import java.time.Duration
@@ -211,10 +214,16 @@ private fun IdleContent(selected: ActivityType, batteryPromptDismissed: Boolean,
                     PackageManager.PERMISSION_GRANTED
                 if (granted) start() else launcher.launch(permissions.toTypedArray())
             },
-            modifier = Modifier.size(160.dp),
-            shape = MaterialTheme.shapes.extraLarge,
+            modifier = Modifier.size(184.dp),
+            shape = CircleShape,
+            contentPadding = PaddingValues(8.dp),
         ) {
-            Text(stringResource(R.string.record_start), style = MaterialTheme.typography.titleLarge)
+            Text(
+                stringResource(R.string.record_start).uppercase(),
+                style = DromosTheme.type.action.copy(fontSize = DromosTheme.type.action.fontSize * 1.05f),
+                maxLines = 1,
+                softWrap = false,
+            )
         }
         if (denied) {
             Text(
@@ -252,7 +261,7 @@ private fun GpsStatus(active: TrackingState.Active) {
         active.paused || active.autoPaused -> MaterialTheme.colorScheme.tertiary
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
-    Text(text, color = color, style = MaterialTheme.typography.labelLarge)
+    TelemetryLabel(text, color = color)
 }
 
 @Composable
@@ -262,7 +271,7 @@ private fun Metrics(active: TrackingState.Active, moving: Duration) {
         BigMetric(
             label = stringResource(R.string.record_metric_duration),
             value = Format.duration(moving),
-            size = 56.sp,
+            size = 88.sp,
         )
         Row(Modifier.fillMaxWidth()) {
             BigMetric(
@@ -301,19 +310,17 @@ private fun BigMetric(
     value: String,
     modifier: Modifier = Modifier,
     unit: String? = null,
-    size: TextUnit = 40.sp,
+    size: TextUnit = 48.sp,
 ) {
     Column(modifier) {
-        Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        TelemetryLabel(label, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(verticalAlignment = Alignment.Bottom) {
             Text(
                 value,
-                fontSize = size,
-                fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
                 softWrap = false,
-                // Chiffres à chasse fixe : le chrono ne fait pas danser la ligne à chaque seconde.
-                style = LocalTextStyle.current.copy(fontFeatureSettings = "tnum"),
+                // Barlow Condensed tabulaire : le chrono ne fait pas danser la ligne à chaque seconde.
+                style = DromosTheme.type.metricLarge.copy(fontSize = size),
                 modifier = Modifier.weight(1f, fill = false),
             )
             if (unit != null) {
@@ -333,24 +340,25 @@ private fun BigMetric(
 private fun Controls(active: TrackingState.Active, onAction: (RecordAction) -> Unit, onStopRequest: () -> Unit) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         if (active.paused) {
-            Button(onClick = { onAction(RecordAction.Resume) }, modifier = Modifier.weight(1f).height(64.dp)) {
+            Button(onClick = { onAction(RecordAction.Resume) }, modifier = Modifier.weight(1f).height(64.dp), shape = CircleShape) {
                 Icon(Icons.Filled.PlayArrow, contentDescription = null)
-                Text(stringResource(R.string.record_resume), Modifier.padding(start = 8.dp))
+                Text(stringResource(R.string.record_resume).uppercase(), Modifier.padding(start = 8.dp), style = DromosTheme.type.action)
             }
         } else {
-            FilledTonalButton(onClick = { onAction(RecordAction.Pause) }, modifier = Modifier.weight(1f).height(64.dp)) {
+            FilledTonalButton(onClick = { onAction(RecordAction.Pause) }, modifier = Modifier.weight(1f).height(64.dp), shape = CircleShape) {
                 Icon(Icons.Filled.Pause, contentDescription = null)
-                Text(stringResource(R.string.record_pause), Modifier.padding(start = 8.dp))
+                Text(stringResource(R.string.record_pause).uppercase(), Modifier.padding(start = 8.dp), style = DromosTheme.type.action)
             }
         }
         // Terminer reste secondaire : un geste de fin ne doit pas ressembler au geste principal.
         OutlinedButton(
             onClick = onStopRequest,
             modifier = Modifier.weight(1f).height(64.dp),
+            shape = CircleShape,
             border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
         ) {
             Icon(Icons.Filled.Stop, contentDescription = null)
-            Text(stringResource(R.string.record_stop), Modifier.padding(start = 8.dp))
+            Text(stringResource(R.string.record_stop).uppercase(), Modifier.padding(start = 8.dp), style = DromosTheme.type.action)
         }
     }
 }

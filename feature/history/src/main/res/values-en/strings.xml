@@ -9,4 +9,9 @@
     <string name="history_filter_all">All</string>
     <string name="history_empty_filtered_title">No activity of this type</string>
     <string name="history_empty_filtered_body">Pick another filter, or get going!</string>
+    <string name="history_eyebrow">Dromos</string>
+    <string name="history_eyebrow_week">Dromos · week %1$d</string>
+    <string name="history_week_distance">km</string>
+    <string name="history_week_count">Activities</string>
+    <string name="history_week_gain">Gain (m)</string>
 </resources>

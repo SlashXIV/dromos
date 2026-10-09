@@ -9,4 +9,9 @@
     <string name="history_filter_all">Toutes</string>
     <string name="history_empty_filtered_title">Aucune sortie de ce type</string>
     <string name="history_empty_filtered_body">Change de filtre ou lance-toi !</string>
+    <string name="history_eyebrow">Dromos</string>
+    <string name="history_eyebrow_week">Dromos · semaine %1$d</string>
+    <string name="history_week_distance">km</string>
+    <string name="history_week_count">Sorties</string>
+    <string name="history_week_gain">D+ (m)</string>
 </resources>

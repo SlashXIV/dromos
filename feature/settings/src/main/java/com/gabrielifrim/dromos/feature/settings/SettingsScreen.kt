@@ -50,10 +50,12 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gabrielifrim.dromos.core.domain.model.AppearanceSettings
 import com.gabrielifrim.dromos.core.domain.model.MapPreferences
+import com.gabrielifrim.dromos.core.domain.model.MotionPreference
 import com.gabrielifrim.dromos.core.domain.model.ThemeMode
 import com.gabrielifrim.dromos.core.domain.model.TrackingPreferences
 import com.gabrielifrim.dromos.core.tracking.BatteryOptimization
 import com.gabrielifrim.dromos.core.ui.theme.DromosPalette
+import com.gabrielifrim.dromos.core.ui.theme.DromosTheme
 import com.gabrielifrim.dromos.core.ui.theme.Palettes
 
 @Composable
@@ -114,6 +116,9 @@ fun SettingsScreen(
             SectionTitle(stringResource(R.string.settings_theme_mode), Modifier.padding(top = 12.dp))
             ThemeModeSelector(appearance.themeMode) { onAction(SettingsAction.SelectThemeMode(it)) }
 
+            SectionTitle(stringResource(R.string.settings_motion), Modifier.padding(top = 12.dp))
+            MotionSelector(appearance.motion) { onAction(SettingsAction.SelectMotion(it)) }
+
             SectionTitle(stringResource(R.string.settings_palette), Modifier.padding(top = 12.dp))
             val selected = Palettes.byId(appearance.paletteId)
             Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -132,8 +137,8 @@ fun SettingsScreen(
 @Composable
 private fun SectionTitle(text: String, modifier: Modifier = Modifier) {
     Text(
-        text = text,
-        style = MaterialTheme.typography.titleSmall,
+        text = text.uppercase(),
+        style = DromosTheme.type.eyebrow,
         color = MaterialTheme.colorScheme.primary,
         modifier = modifier,
     )
@@ -194,6 +199,34 @@ private fun SwitchRow(title: String, body: String, checked: Boolean, onChange: (
         }
         // Rôle porté par la ligne entière : l'interrupteur seul n'est pas cliquable.
         Switch(checked = checked, onCheckedChange = null)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MotionSelector(current: MotionPreference, onSelect: (MotionPreference) -> Unit) {
+    val options = listOf(
+        MotionPreference.EXPRESSIVE to R.string.settings_motion_expressive,
+        MotionPreference.CALM to R.string.settings_motion_calm,
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+            options.forEachIndexed { index, (motion, label) ->
+                SegmentedButton(
+                    selected = current == motion,
+                    onClick = { onSelect(motion) },
+                    shape = SegmentedButtonDefaults.itemShape(index, options.size),
+                ) { Text(stringResource(label)) }
+            }
+        }
+        Text(
+            stringResource(
+                if (current == MotionPreference.EXPRESSIVE) R.string.settings_motion_expressive_body
+                else R.string.settings_motion_calm_body,
+            ),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

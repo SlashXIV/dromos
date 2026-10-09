@@ -14,7 +14,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Delete
@@ -56,7 +58,14 @@ import com.gabrielifrim.dromos.core.domain.model.Activity
 import com.gabrielifrim.dromos.core.map.TrackMap
 import com.gabrielifrim.dromos.core.ui.text.Format
 import com.gabrielifrim.dromos.core.ui.text.displayTitle
+import com.gabrielifrim.dromos.core.ui.motion.LocalMotionLevel
+import com.gabrielifrim.dromos.core.ui.motion.Motion
+import com.gabrielifrim.dromos.core.ui.motion.RisingText
+import com.gabrielifrim.dromos.core.ui.motion.riseIn
 import com.gabrielifrim.dromos.core.ui.theme.DromosTheme
+import com.gabrielifrim.dromos.core.ui.visual.Rule
+import com.gabrielifrim.dromos.core.ui.visual.TelemetryLabel
+import kotlinx.coroutines.delay
 import java.time.Duration
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -91,7 +100,8 @@ fun ActivityDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { if (activity != null) Text(activity.displayTitle(), maxLines = 1) },
+                // Le titre vit en affiche dans la page ; la barre ne garde que les actions.
+                title = {},
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.activity_back))
@@ -118,6 +128,7 @@ fun ActivityDetailScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             if (justFinished) item { FinishedBanner() }
+            item { PosterTitle(activity) }
             item {
                 val trace = state.analysis?.trace.orEmpty()
                 TrackMap(
@@ -131,23 +142,25 @@ fun ActivityDetailScreen(
                         .clip(MaterialTheme.shapes.large),
                 )
             }
-            item { DateLine(activity) }
-            item { Totals(activity) }
+            item { Totals(activity, Modifier.riseIn(baseDelayMs = 250)) }
             activity.notes?.let { notes -> item { NotesCard(notes) } }
             val splits = state.analysis?.splits.orEmpty()
             if (splits.isNotEmpty()) {
                 item {
-                    Text(
-                        stringResource(R.string.activity_splits),
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(top = 8.dp),
-                    )
+                    Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Rule(delayMs = 300)
+                        Text(
+                            stringResource(R.string.activity_splits).uppercase(),
+                            style = DromosTheme.type.eyebrow,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
                 }
                 item { SplitHeader() }
                 val paces = splits.mapNotNull { it.paceSecondsPerKm }
                 val average = if (activity.distanceMeters > 0) activity.movingDuration.seconds / activity.distanceMeters * 1000 else null
-                items(splits, key = { it.index }) { split ->
-                    SplitRow(split, average, fastest = paces.minOrNull(), slowest = paces.maxOrNull())
+                itemsIndexed(splits, key = { _, it -> it.index }) { index, split ->
+                    SplitRow(split, index, average, fastest = paces.minOrNull(), slowest = paces.maxOrNull())
                 }
             }
         }
@@ -186,29 +199,36 @@ private fun FinishedBanner() {
         modifier = Modifier.fillMaxWidth(),
     ) {
         Text(
-            stringResource(R.string.activity_finished),
+            stringResource(R.string.activity_finished).uppercase(),
             modifier = Modifier.padding(16.dp),
-            style = MaterialTheme.typography.titleMedium,
+            style = DromosTheme.type.action,
             color = MaterialTheme.colorScheme.onSecondaryContainer,
         )
     }
 }
 
+/** Date en télémétrie, titre en affiche : l'identité de la sortie. */
 @Composable
-private fun DateLine(activity: Activity) {
+private fun PosterTitle(activity: Activity) {
     val locale = LocalConfiguration.current.locales[0]
     val start = activity.startedAt.atZone(ZoneId.systemDefault())
     val date = DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(locale).format(start)
     val time = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale).format(start)
-    Text(
-        stringResource(R.string.activity_date_time, date.replaceFirstChar { it.titlecase(locale) }, time),
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        TelemetryLabel(
+            stringResource(R.string.activity_date_time, date, time),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        RisingText(
+            text = activity.displayTitle().uppercase(locale),
+            style = DromosTheme.type.poster.copy(fontSize = DromosTheme.type.poster.fontSize * 0.8f),
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+    }
 }
 
 @Composable
-private fun Totals(activity: Activity) {
+private fun Totals(activity: Activity, modifier: Modifier = Modifier) {
     val locale = LocalConfiguration.current.locales[0]
     val elapsed = activity.endedAt?.let { Duration.between(activity.startedAt, it) }
     val stats = buildList {
@@ -222,18 +242,13 @@ private fun Totals(activity: Activity) {
         add(stringResource(R.string.activity_gain) to elevation(activity.elevationGainMeters, UiR.string.unit_elevation_gain))
         add(stringResource(R.string.activity_loss) to elevation(activity.elevationLossMeters, UiR.string.unit_elevation_loss))
     }
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         stats.chunked(2).forEach { row ->
             Row(Modifier.fillMaxWidth()) {
                 row.forEach { (label, value) ->
                     Column(Modifier.weight(1f)) {
-                        Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(
-                            value,
-                            fontSize = 26.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            style = LocalTextStyle.current.copy(fontFeatureSettings = "tnum"),
-                        )
+                        TelemetryLabel(label, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(value, style = DromosTheme.type.metric.copy(fontSize = DromosTheme.type.metric.fontSize * 1.45f))
                     }
                 }
             }
@@ -261,10 +276,10 @@ private fun NotesCard(notes: String) {
 @Composable
 private fun SplitHeader() {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(stringResource(R.string.activity_split_km), Modifier.width(48.dp), style = MaterialTheme.typography.labelMedium)
-        Text(stringResource(R.string.activity_split_pace), Modifier.width(72.dp), style = MaterialTheme.typography.labelMedium)
+        TelemetryLabel(stringResource(R.string.activity_split_km), Modifier.width(48.dp), MaterialTheme.colorScheme.onSurfaceVariant)
+        TelemetryLabel(stringResource(R.string.activity_split_pace), Modifier.width(72.dp), MaterialTheme.colorScheme.onSurfaceVariant)
         Box(Modifier.weight(1f))
-        Text(stringResource(R.string.activity_split_gain), Modifier.width(56.dp), style = MaterialTheme.typography.labelMedium)
+        TelemetryLabel(stringResource(R.string.activity_split_gain), Modifier.width(56.dp), MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -273,7 +288,7 @@ private fun SplitHeader() {
  * rapide, verte s'il est plus rapide que la moyenne, saumon s'il est plus lent.
  */
 @Composable
-private fun SplitRow(split: Split, average: Double?, fastest: Double?, slowest: Double?) {
+private fun SplitRow(split: Split, index: Int, average: Double?, fastest: Double?, slowest: Double?) {
     val pace = split.paceSecondsPerKm
     val color = when {
         pace == null || average == null -> MaterialTheme.colorScheme.outline
@@ -283,24 +298,31 @@ private fun SplitRow(split: Split, average: Double?, fastest: Double?, slowest: 
     // Échelle : le plus lent occupe 35 % de la largeur, le plus rapide 100 %.
     val fraction = if (pace == null || fastest == null || slowest == null || slowest <= fastest) 1f
     else (0.35 + 0.65 * (slowest - pace) / (slowest - fastest)).toFloat()
+    // Les barres poussent l'une après l'autre (rebond léger), une seule fois.
+    val level = LocalMotionLevel.current
+    val grow = remember { Animatable(if (level.decorative) 0f else 1f) }
+    LaunchedEffect(Unit) {
+        if (!level.decorative) return@LaunchedEffect
+        delay(400L + 70L * index.coerceAtMost(12))
+        grow.animateTo(1f, tween(Motion.RELEASE_MS, easing = Motion.Release))
+    }
     val label = if (split.distanceMeters < 999.0) {
         stringResource(R.string.activity_split_partial, Format.kilometers(split.distanceMeters, LocalConfiguration.current.locales[0]))
     } else {
         split.index.toString()
     }
     Row(Modifier.fillMaxWidth().height(28.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, Modifier.width(48.dp), style = MaterialTheme.typography.bodyMedium)
+        Text(label, Modifier.width(48.dp), style = DromosTheme.type.metric, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(
             pace?.let { Format.paceFromSeconds(it) } ?: DASH,
             Modifier.width(72.dp),
-            style = LocalTextStyle.current.copy(fontFeatureSettings = "tnum"),
-            fontWeight = FontWeight.SemiBold,
+            style = DromosTheme.type.metric,
         )
         Box(Modifier.weight(1f).fillMaxHeight().padding(vertical = 6.dp)) {
             Box(
                 Modifier
                     .fillMaxHeight()
-                    .fillMaxWidth(fraction)
+                    .fillMaxWidth(fraction * grow.value.coerceAtLeast(0f))
                     .clip(MaterialTheme.shapes.extraSmall)
                     .background(color),
             )
