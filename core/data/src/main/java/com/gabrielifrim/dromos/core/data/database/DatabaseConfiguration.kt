@@ -17,8 +17,19 @@ internal val MIGRATION_1_2 = object : Migration(1, 2) {
     }
 }
 
+/**
+ * v2 → v3 : la sortie mémorise si la pause automatique était active, pour que
+ * l'analyse (splits) retire les mêmes arrêts que le suivi en direct. Les sorties
+ * existantes ont toutes été enregistrées avec la pause automatique par défaut.
+ */
+internal val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE activity ADD COLUMN auto_pause INTEGER NOT NULL DEFAULT 1")
+    }
+}
+
 /** Migrations explicites, dans l'ordre. */
-internal val DROMOS_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2)
+internal val DROMOS_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
 
 /**
  * Configuration de la base, définie une seule fois : les tests instrumentés

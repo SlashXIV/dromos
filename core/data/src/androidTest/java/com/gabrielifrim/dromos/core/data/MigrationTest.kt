@@ -6,6 +6,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.gabrielifrim.dromos.core.data.database.DromosDatabase
 import com.gabrielifrim.dromos.core.data.database.MIGRATION_1_2
+import com.gabrielifrim.dromos.core.data.database.MIGRATION_2_3
 import com.google.common.truth.Truth.assertThat
 import org.junit.Rule
 import org.junit.Test
@@ -61,6 +62,27 @@ class MigrationTest {
             // Les anciens points n'ont ni cap ni baromètre : ils restent calculables sans.
             assertThat(c.isNull(1)).isTrue()
             assertThat(c.isNull(2)).isTrue()
+        }
+    }
+
+    @Test
+    fun la_migration_2_3_suppose_la_pause_automatique_active() {
+        helper.createDatabase(databaseName, 2).use { db ->
+            db.execSQL(
+                """
+                INSERT INTO activity (id, type, status, started_at, ended_at, distance_m, moving_duration_ms,
+                    elevation_gain_m, elevation_loss_m, title, notes)
+                VALUES (7, 'WALK', 'FINISHED', 1760000000000, 1760001800000, 2400.0, 1700000, 12.0, 11.0, NULL, NULL)
+                """.trimIndent(),
+            )
+        }
+
+        val db = helper.runMigrationsAndValidate(databaseName, 3, true, MIGRATION_2_3)
+
+        db.query("SELECT auto_pause, distance_m FROM activity WHERE id = 7").use { c ->
+            assertThat(c.moveToFirst()).isTrue()
+            assertThat(c.getInt(0)).isEqualTo(1)
+            assertThat(c.getDouble(1)).isEqualTo(2400.0)
         }
     }
 }

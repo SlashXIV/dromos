@@ -19,6 +19,7 @@ internal fun ActivityEntity.toDomain(): Activity = Activity(
     elevationLossMeters = elevationLossMeters,
     title = title,
     notes = notes,
+    autoPause = autoPause,
 )
 
 internal fun Activity.toEntity(): ActivityEntity = ActivityEntity(
@@ -33,4 +34,5 @@ internal fun Activity.toEntity(): ActivityEntity = ActivityEntity(
     elevationLossMeters = elevationLossMeters,
     title = title,
     notes = notes,
+    autoPause = autoPause,
 )

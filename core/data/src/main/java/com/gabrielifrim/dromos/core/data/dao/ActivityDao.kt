@@ -11,6 +11,15 @@ interface ActivityDao {
     @Query("SELECT * FROM activity WHERE status = :status ORDER BY started_at DESC")
     fun observeByStatus(status: String): Flow<List<ActivityEntity>>
 
+    @Query("SELECT * FROM activity WHERE status = :status AND type = :type ORDER BY started_at DESC")
+    fun observeByStatusAndType(status: String, type: String): Flow<List<ActivityEntity>>
+
+    @Query("SELECT * FROM activity WHERE id = :id")
+    fun observeById(id: Long): Flow<ActivityEntity?>
+
+    @Query("UPDATE activity SET title = :title, notes = :notes WHERE id = :id")
+    suspend fun updateDetails(id: Long, title: String?, notes: String?)
+
     @Query("SELECT * FROM activity WHERE status = :status ORDER BY started_at DESC LIMIT 1")
     suspend fun findLatestByStatus(status: String): ActivityEntity?
 

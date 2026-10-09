@@ -22,7 +22,7 @@ internal class TrackingRepositoryImpl @Inject constructor(
     private val trackPointDao: TrackPointDao,
 ) : TrackingRepository {
 
-    override suspend fun createActivity(type: ActivityType, startedAt: Instant): Long =
+    override suspend fun createActivity(type: ActivityType, startedAt: Instant, autoPause: Boolean): Long =
         activityDao.insert(
             ActivityEntity(
                 type = type.name,
@@ -35,6 +35,7 @@ internal class TrackingRepositoryImpl @Inject constructor(
                 elevationLossMeters = 0.0,
                 title = null,
                 notes = null,
+                autoPause = autoPause,
             ),
         )
 

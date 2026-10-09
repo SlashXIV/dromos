@@ -25,4 +25,5 @@ data class ActivityEntity(
     @ColumnInfo(name = "elevation_loss_m") val elevationLossMeters: Double,
     val title: String?,
     val notes: String?,
+    @ColumnInfo(name = "auto_pause", defaultValue = "1") val autoPause: Boolean = true,
 )
