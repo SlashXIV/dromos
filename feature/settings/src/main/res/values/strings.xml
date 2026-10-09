@@ -11,4 +11,7 @@
     <string name="settings_tracking">Suivi</string>
     <string name="settings_auto_pause">Pause automatique</string>
     <string name="settings_auto_pause_body">Le chrono s’arrête quand tu t’arrêtes (feu rouge, photo) et repart avec toi.</string>
+    <string name="settings_map">Carte</string>
+    <string name="settings_online_basemap">Fond de carte en ligne</string>
+    <string name="settings_online_basemap_body">Télécharge les tuiles OpenStreetMap (OpenFreeMap) autour de toi. Désactivé : aucune requête réseau, seul le tracé est dessiné.</string>
 </resources>

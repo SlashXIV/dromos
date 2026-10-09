@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.gabrielifrim.dromos.core.domain.model.AppearanceSettings
+import com.gabrielifrim.dromos.core.domain.model.MapPreferences
 import com.gabrielifrim.dromos.core.domain.model.ThemeMode
 import com.gabrielifrim.dromos.core.domain.model.TrackingPreferences
 import com.gabrielifrim.dromos.core.domain.repository.SettingsRepository
@@ -46,9 +47,18 @@ internal class SettingsRepositoryImpl @Inject constructor(
         dataStore.edit { it[AUTO_PAUSE] = enabled }
     }
 
+    override val map: Flow<MapPreferences> = dataStore.data
+        .map { prefs -> MapPreferences(onlineBasemap = prefs[ONLINE_BASEMAP] ?: true) }
+        .distinctUntilChanged()
+
+    override suspend fun setOnlineBasemap(enabled: Boolean) {
+        dataStore.edit { it[ONLINE_BASEMAP] = enabled }
+    }
+
     private companion object {
         val PALETTE = stringPreferencesKey("palette")
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val AUTO_PAUSE = booleanPreferencesKey("pause_auto")
+        val ONLINE_BASEMAP = booleanPreferencesKey("carte_en_ligne")
     }
 }

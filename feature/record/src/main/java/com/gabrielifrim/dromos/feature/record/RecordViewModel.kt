@@ -3,6 +3,8 @@ package com.gabrielifrim.dromos.feature.record
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gabrielifrim.dromos.core.domain.model.ActivityType
+import com.gabrielifrim.dromos.core.domain.model.GeoPoint
+import com.gabrielifrim.dromos.core.domain.repository.SettingsRepository
 import com.gabrielifrim.dromos.core.domain.tracking.TrackingState
 import com.gabrielifrim.dromos.core.tracking.TrackingController
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -23,6 +25,8 @@ data class RecordUiState(
     val selectedType: ActivityType = ActivityType.RUN,
     val tracking: TrackingState = TrackingState.Idle,
     val now: Instant = Instant.EPOCH,
+    val trace: List<List<GeoPoint>> = emptyList(),
+    val onlineBasemap: Boolean = true,
 ) {
     val active: TrackingState.Active? get() = tracking as? TrackingState.Active
     val movingDuration: Duration get() = active?.movingDurationAt(now) ?: Duration.ZERO
@@ -41,6 +45,7 @@ sealed interface RecordAction {
 class RecordViewModel @Inject constructor(
     private val controller: TrackingController,
     private val clock: Clock,
+    settings: SettingsRepository,
 ) : ViewModel() {
 
     private val selectedType = MutableStateFlow(ActivityType.RUN)
@@ -53,8 +58,14 @@ class RecordViewModel @Inject constructor(
         }
     }
 
-    val uiState: StateFlow<RecordUiState> = combine(selectedType, controller.state, ticker) { type, tracking, now ->
-        RecordUiState(selectedType = type, tracking = tracking, now = now)
+    val uiState: StateFlow<RecordUiState> = combine(
+        selectedType,
+        controller.state,
+        ticker,
+        controller.trace,
+        settings.map,
+    ) { type, tracking, now, trace, map ->
+        RecordUiState(selectedType = type, tracking = tracking, now = now, trace = trace, onlineBasemap = map.onlineBasemap)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), RecordUiState())
 
     fun onAction(action: RecordAction, onFinished: () -> Unit = {}) {

@@ -45,6 +45,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -58,6 +59,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gabrielifrim.dromos.core.domain.model.ActivityType
 import com.gabrielifrim.dromos.core.domain.tracking.TrackingState
+import com.gabrielifrim.dromos.core.map.TrackMap
+import com.gabrielifrim.dromos.core.ui.theme.DromosTheme
 import com.gabrielifrim.dromos.core.ui.text.Format
 import com.gabrielifrim.dromos.core.ui.text.labelRes
 import java.time.Duration
@@ -115,6 +118,15 @@ fun RecordScreen(
                 IdleContent(state.selectedType, onAction)
             } else {
                 if (active.recovered) RecoveredBanner()
+                TrackMap(
+                    segments = state.trace,
+                    traceColor = DromosTheme.metrics.trace,
+                    online = state.onlineBasemap,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(240.dp)
+                        .clip(MaterialTheme.shapes.large),
+                )
                 GpsStatus(active)
                 Metrics(active, state.movingDuration)
                 Spacer(Modifier.weight(1f))
@@ -231,11 +243,11 @@ private fun GpsStatus(active: TrackingState.Active) {
 @Composable
 private fun Metrics(active: TrackingState.Active, moving: Duration) {
     val locale = LocalConfiguration.current.locales[0]
-    Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         BigMetric(
             label = stringResource(R.string.record_metric_duration),
             value = Format.duration(moving),
-            size = 64.sp,
+            size = 56.sp,
         )
         Row(Modifier.fillMaxWidth()) {
             BigMetric(

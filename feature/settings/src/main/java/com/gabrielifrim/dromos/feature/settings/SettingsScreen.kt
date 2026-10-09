@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gabrielifrim.dromos.core.domain.model.AppearanceSettings
+import com.gabrielifrim.dromos.core.domain.model.MapPreferences
 import com.gabrielifrim.dromos.core.domain.model.ThemeMode
 import com.gabrielifrim.dromos.core.domain.model.TrackingPreferences
 import com.gabrielifrim.dromos.core.ui.theme.DromosPalette
@@ -53,7 +54,8 @@ fun SettingsRoute(
 ) {
     val appearance by viewModel.appearance.collectAsStateWithLifecycle()
     val tracking by viewModel.tracking.collectAsStateWithLifecycle()
-    SettingsScreen(appearance, tracking, viewModel::onAction, onBack)
+    val map by viewModel.map.collectAsStateWithLifecycle()
+    SettingsScreen(appearance, tracking, map, viewModel::onAction, onBack)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -61,6 +63,7 @@ fun SettingsRoute(
 fun SettingsScreen(
     appearance: AppearanceSettings,
     tracking: TrackingPreferences,
+    map: MapPreferences,
     onAction: (SettingsAction) -> Unit,
     onBack: () -> Unit,
 ) {
@@ -84,7 +87,18 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             SectionTitle(stringResource(R.string.settings_tracking))
-            AutoPauseRow(tracking.autoPause) { onAction(SettingsAction.SetAutoPause(it)) }
+            SwitchRow(
+                title = stringResource(R.string.settings_auto_pause),
+                body = stringResource(R.string.settings_auto_pause_body),
+                checked = tracking.autoPause,
+            ) { onAction(SettingsAction.SetAutoPause(it)) }
+
+            SectionTitle(stringResource(R.string.settings_map), Modifier.padding(top = 12.dp))
+            SwitchRow(
+                title = stringResource(R.string.settings_online_basemap),
+                body = stringResource(R.string.settings_online_basemap_body),
+                checked = map.onlineBasemap,
+            ) { onAction(SettingsAction.SetOnlineBasemap(it)) }
 
             SectionTitle(stringResource(R.string.settings_theme_mode), Modifier.padding(top = 12.dp))
             ThemeModeSelector(appearance.themeMode) { onAction(SettingsAction.SelectThemeMode(it)) }
@@ -115,24 +129,24 @@ private fun SectionTitle(text: String, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun AutoPauseRow(enabled: Boolean, onChange: (Boolean) -> Unit) {
+private fun SwitchRow(title: String, body: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .toggleable(value = enabled, onValueChange = onChange, role = Role.Switch),
+            .toggleable(value = checked, onValueChange = onChange, role = Role.Switch),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Column(Modifier.weight(1f)) {
-            Text(stringResource(R.string.settings_auto_pause), style = MaterialTheme.typography.bodyLarge)
+            Text(title, style = MaterialTheme.typography.bodyLarge)
             Text(
-                stringResource(R.string.settings_auto_pause_body),
+                body,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         // Rôle porté par la ligne entière : l'interrupteur seul n'est pas cliquable.
-        Switch(checked = enabled, onCheckedChange = null)
+        Switch(checked = checked, onCheckedChange = null)
     }
 }
 

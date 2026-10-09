@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.content.ContextCompat
 import com.gabrielifrim.dromos.core.domain.model.ActivityType
+import com.gabrielifrim.dromos.core.domain.model.GeoPoint
 import com.gabrielifrim.dromos.core.domain.tracking.TrackingEngine
 import com.gabrielifrim.dromos.core.domain.tracking.TrackingState
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -22,6 +23,8 @@ class TrackingController @Inject constructor(
     private val engine: TrackingEngine,
 ) {
     val state: StateFlow<TrackingState> get() = engine.state
+
+    val trace: StateFlow<List<List<GeoPoint>>> get() = engine.trace
 
     suspend fun start(type: ActivityType) {
         engine.start(type)
