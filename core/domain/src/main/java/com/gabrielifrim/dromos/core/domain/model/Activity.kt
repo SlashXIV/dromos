@@ -19,4 +19,6 @@ data class Activity(
     val elevationLossMeters: Double,
     val title: String?,
     val notes: String?,
+    /** Pause automatique active pendant la sortie : l'analyse retire alors les arrêts du temps. */
+    val autoPause: Boolean = true,
 )

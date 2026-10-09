@@ -9,7 +9,7 @@ import java.time.Instant
 /** Écritures du moteur de suivi pendant une sortie. */
 interface TrackingRepository {
     /** Crée une sortie IN_PROGRESS et renvoie son identifiant. */
-    suspend fun createActivity(type: ActivityType, startedAt: Instant): Long
+    suspend fun createActivity(type: ActivityType, startedAt: Instant, autoPause: Boolean): Long
 
     /** Ajoute des points ET met à jour les totaux, dans une même transaction. */
     suspend fun appendPoints(activityId: Long, points: List<TrackPoint>, totals: TrackTotals)

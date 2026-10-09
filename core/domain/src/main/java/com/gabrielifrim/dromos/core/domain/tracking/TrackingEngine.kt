@@ -81,7 +81,7 @@ class TrackingEngine @Inject constructor(
     suspend fun start(type: ActivityType) = mutex.withLock {
         if (_state.value != TrackingState.Idle) return@withLock
         val now = clock.instant()
-        val id = repository.createActivity(type, now)
+        val id = repository.createActivity(type, now, autoPauseEnabled)
         accumulator = TrackAccumulator()
         autoPause = AutoPauseDetector(type)
         pending.clear()

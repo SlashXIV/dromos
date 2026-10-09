@@ -59,6 +59,7 @@ class TrackingEngineTest {
         override suspend fun setThemeMode(mode: ThemeMode) = Unit
         override val tracking: Flow<TrackingPreferences> = prefs
         override suspend fun setAutoPause(enabled: Boolean) { prefs.value = TrackingPreferences(enabled) }
+        override suspend fun setBatteryPromptDismissed(dismissed: Boolean) = Unit
         override val map: Flow<MapPreferences> = MutableStateFlow(MapPreferences())
         override suspend fun setOnlineBasemap(enabled: Boolean) = Unit
     }
@@ -68,9 +69,11 @@ class TrackingEngineTest {
         val points = mutableMapOf<Long, MutableList<TrackPoint>>()
         private var nextId = 1L
 
-        override suspend fun createActivity(type: ActivityType, startedAt: Instant): Long {
+        override suspend fun createActivity(type: ActivityType, startedAt: Instant, autoPause: Boolean): Long {
             val id = nextId++
-            activities[id] = Activity(id, type, ActivityStatus.IN_PROGRESS, startedAt, null, 0.0, Duration.ZERO, 0.0, 0.0, null, null)
+            activities[id] = Activity(
+                id, type, ActivityStatus.IN_PROGRESS, startedAt, null, 0.0, Duration.ZERO, 0.0, 0.0, null, null, autoPause,
+            )
             points[id] = mutableListOf()
             return id
         }

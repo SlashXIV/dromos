@@ -17,6 +17,8 @@ interface SettingsRepository {
 
     suspend fun setAutoPause(enabled: Boolean)
 
+    suspend fun setBatteryPromptDismissed(dismissed: Boolean)
+
     val map: Flow<MapPreferences>
 
     suspend fun setOnlineBasemap(enabled: Boolean)
