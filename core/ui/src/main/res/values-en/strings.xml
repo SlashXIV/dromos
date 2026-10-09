@@ -8,4 +8,5 @@
 
     <string name="palette_coral">Coral</string>
     <string name="palette_signal">Signal</string>
+    <string name="unit_elevation_gain">+%1$s m</string>
 </resources>

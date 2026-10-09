@@ -8,4 +8,7 @@
     <string name="settings_theme_dark">Sombre</string>
     <string name="settings_palette">Palette de couleurs</string>
     <string name="settings_palette_selected">Palette sélectionnée</string>
+    <string name="settings_tracking">Suivi</string>
+    <string name="settings_auto_pause">Pause automatique</string>
+    <string name="settings_auto_pause_body">Le chrono s’arrête quand tu t’arrêtes (feu rouge, photo) et repart avec toi.</string>
 </resources>

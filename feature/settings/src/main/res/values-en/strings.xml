@@ -8,4 +8,7 @@
     <string name="settings_theme_dark">Dark</string>
     <string name="settings_palette">Color palette</string>
     <string name="settings_palette_selected">Selected palette</string>
+    <string name="settings_tracking">Tracking</string>
+    <string name="settings_auto_pause">Auto-pause</string>
+    <string name="settings_auto_pause_body">The timer stops when you stop (traffic light, photo) and resumes when you move.</string>
 </resources>

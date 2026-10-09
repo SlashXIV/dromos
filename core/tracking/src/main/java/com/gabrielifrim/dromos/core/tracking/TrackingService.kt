@@ -80,7 +80,9 @@ class TrackingService : Service() {
             // La notification ne change qu'à chaque pas de 10 m ou changement d'état :
             // le chrono, lui, tourne tout seul (setUsesChronometer).
             .map { state ->
-                (state as? TrackingState.Active)?.let { Triple(it.paused, floor(it.distanceMeters / 10), it.locationError) }
+                (state as? TrackingState.Active)?.let {
+                    listOf(it.paused, it.autoPaused, floor(it.distanceMeters / 10), it.locationError)
+                }
             }
             .distinctUntilChanged()
             .collect {
@@ -115,6 +117,7 @@ class TrackingService : Service() {
         )
         val title = when {
             state.paused -> getString(R.string.tracking_notification_paused, typeLabel)
+            state.autoPaused -> getString(R.string.tracking_notification_auto_paused, typeLabel)
             state.locationError -> getString(R.string.tracking_notification_no_gps)
             else -> typeLabel
         }
@@ -128,12 +131,17 @@ class TrackingService : Service() {
             .setSilent(true)
             .setCategory(NotificationCompat.CATEGORY_WORKOUT)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
-        if (state.paused) {
+        if (state.paused || state.autoPaused) {
             builder.setSubText(Format.duration(moving))
+        }
+        if (state.paused) {
             builder.addAction(0, getString(R.string.tracking_action_resume), action(ACTION_RESUME, 2))
         } else {
             // Chronomètre système : avance sans réveiller l'application chaque seconde.
-            builder.setUsesChronometer(true).setShowWhen(true).setWhen(now.toEpochMilli() - moving.toMillis())
+            // En pause automatique, il est figé : la durée s'affiche en sous-texte.
+            if (!state.autoPaused) {
+                builder.setUsesChronometer(true).setShowWhen(true).setWhen(now.toEpochMilli() - moving.toMillis())
+            }
             builder.addAction(0, getString(R.string.tracking_action_pause), action(ACTION_PAUSE, 1))
         }
         builder.addAction(0, getString(R.string.tracking_action_stop), action(ACTION_STOP, 3))

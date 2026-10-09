@@ -127,6 +127,9 @@ private fun ActivityCard(activity: Activity) {
                 Format.pace(activity.movingDuration, activity.distanceMeters)?.let {
                     Text(stringResource(UiR.string.unit_pace, it))
                 }
+                if (activity.elevationGainMeters >= 1) {
+                    Text(stringResource(UiR.string.unit_elevation_gain, Format.meters(activity.elevationGainMeters)))
+                }
             }
         }
     }

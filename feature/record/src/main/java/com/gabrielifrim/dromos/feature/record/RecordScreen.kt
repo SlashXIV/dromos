@@ -214,6 +214,7 @@ private fun RecoveredBanner() {
 private fun GpsStatus(active: TrackingState.Active) {
     val text = when {
         active.paused -> stringResource(R.string.record_status_paused)
+        active.autoPaused -> stringResource(R.string.record_status_auto_paused)
         active.locationError -> stringResource(R.string.record_status_gps_error)
         active.lastFixAt == null -> stringResource(R.string.record_status_searching)
         else -> active.accuracyMeters?.let { stringResource(R.string.record_status_accuracy, it.toInt()) }
@@ -221,7 +222,7 @@ private fun GpsStatus(active: TrackingState.Active) {
     }
     val color = when {
         active.locationError -> MaterialTheme.colorScheme.error
-        active.paused -> MaterialTheme.colorScheme.tertiary
+        active.paused || active.autoPaused -> MaterialTheme.colorScheme.tertiary
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
     Text(text, color = color, style = MaterialTheme.typography.labelLarge)
@@ -250,11 +251,20 @@ private fun Metrics(active: TrackingState.Active, moving: Duration) {
                 modifier = Modifier.weight(1f),
             )
         }
-        BigMetric(
-            label = stringResource(R.string.record_metric_current_pace),
-            value = active.currentSpeedMetersPerSecond?.let { Format.paceFromSpeed(it) } ?: PLACEHOLDER,
-            unit = stringResource(R.string.record_unit_pace),
-        )
+        Row(Modifier.fillMaxWidth()) {
+            BigMetric(
+                label = stringResource(R.string.record_metric_current_pace),
+                value = active.currentSpeedMetersPerSecond?.let { Format.paceFromSpeed(it) } ?: PLACEHOLDER,
+                unit = stringResource(R.string.record_unit_pace),
+                modifier = Modifier.weight(1f),
+            )
+            BigMetric(
+                label = stringResource(R.string.record_metric_elevation),
+                value = Format.meters(active.elevationGainMeters),
+                unit = stringResource(R.string.record_unit_meters),
+                modifier = Modifier.weight(1f),
+            )
+        }
     }
 }
 

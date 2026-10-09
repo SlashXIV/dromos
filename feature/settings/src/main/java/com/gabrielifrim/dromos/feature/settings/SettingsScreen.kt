@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -26,6 +27,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -40,6 +42,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gabrielifrim.dromos.core.domain.model.AppearanceSettings
 import com.gabrielifrim.dromos.core.domain.model.ThemeMode
+import com.gabrielifrim.dromos.core.domain.model.TrackingPreferences
 import com.gabrielifrim.dromos.core.ui.theme.DromosPalette
 import com.gabrielifrim.dromos.core.ui.theme.Palettes
 
@@ -49,13 +52,15 @@ fun SettingsRoute(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val appearance by viewModel.appearance.collectAsStateWithLifecycle()
-    SettingsScreen(appearance, viewModel::onAction, onBack)
+    val tracking by viewModel.tracking.collectAsStateWithLifecycle()
+    SettingsScreen(appearance, tracking, viewModel::onAction, onBack)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     appearance: AppearanceSettings,
+    tracking: TrackingPreferences,
     onAction: (SettingsAction) -> Unit,
     onBack: () -> Unit,
 ) {
@@ -78,7 +83,10 @@ fun SettingsScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            SectionTitle(stringResource(R.string.settings_theme_mode))
+            SectionTitle(stringResource(R.string.settings_tracking))
+            AutoPauseRow(tracking.autoPause) { onAction(SettingsAction.SetAutoPause(it)) }
+
+            SectionTitle(stringResource(R.string.settings_theme_mode), Modifier.padding(top = 12.dp))
             ThemeModeSelector(appearance.themeMode) { onAction(SettingsAction.SelectThemeMode(it)) }
 
             SectionTitle(stringResource(R.string.settings_palette), Modifier.padding(top = 12.dp))
@@ -104,6 +112,28 @@ private fun SectionTitle(text: String, modifier: Modifier = Modifier) {
         color = MaterialTheme.colorScheme.primary,
         modifier = modifier,
     )
+}
+
+@Composable
+private fun AutoPauseRow(enabled: Boolean, onChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .toggleable(value = enabled, onValueChange = onChange, role = Role.Switch),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(stringResource(R.string.settings_auto_pause), style = MaterialTheme.typography.bodyLarge)
+            Text(
+                stringResource(R.string.settings_auto_pause_body),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        // Rôle porté par la ligne entière : l'interrupteur seul n'est pas cliquable.
+        Switch(checked = enabled, onCheckedChange = null)
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

@@ -6,4 +6,5 @@
     <string name="tracking_action_pause">Pause</string>
     <string name="tracking_action_resume">Resume</string>
     <string name="tracking_action_stop">Finish</string>
+    <string name="tracking_notification_auto_paused">%1$s · auto-paused</string>
 </resources>

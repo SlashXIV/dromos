@@ -24,4 +24,7 @@
     <string name="record_metric_current_pace">Allure instantanée</string>
     <string name="record_unit_km">km</string>
     <string name="record_unit_pace">/km</string>
+    <string name="record_status_auto_paused">Pause automatique : le chrono repartira avec toi</string>
+    <string name="record_metric_elevation">Dénivelé +</string>
+    <string name="record_unit_meters">m</string>
 </resources>

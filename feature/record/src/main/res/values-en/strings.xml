@@ -24,4 +24,7 @@
     <string name="record_metric_current_pace">Current pace</string>
     <string name="record_unit_km">km</string>
     <string name="record_unit_pace">/km</string>
+    <string name="record_status_auto_paused">Auto-paused: the timer resumes when you move</string>
+    <string name="record_metric_elevation">Elevation gain</string>
+    <string name="record_unit_meters">m</string>
 </resources>
