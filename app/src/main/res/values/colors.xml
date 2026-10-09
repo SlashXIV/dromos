@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Palette de l'icône (provisoire, cf. design/icon/dromos-icon.svg). -->
+    <color name="icon_background">#101214</color>
+    <color name="icon_letter">#F2F0EA</color>
+    <color name="icon_accent">#FF6A3D</color>
+</resources>
