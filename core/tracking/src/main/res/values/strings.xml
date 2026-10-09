@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tracking_channel">Sortie en cours</string>
+    <string name="tracking_notification_paused">%1$s en pause</string>
+    <string name="tracking_notification_no_gps">Signal GPS indisponible</string>
+    <string name="tracking_action_pause">Pause</string>
+    <string name="tracking_action_resume">Reprendre</string>
+    <string name="tracking_action_stop">Terminer</string>
+</resources>

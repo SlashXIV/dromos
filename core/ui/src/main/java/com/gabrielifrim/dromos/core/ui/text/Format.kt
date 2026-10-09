@@ -32,5 +32,16 @@ object Format {
         return "%d:%02d".format(secondsPerKm / 60, secondsPerKm % 60)
     }
 
+    /**
+     * Allure tirée d'une vitesse instantanée : « 5:12 ». Null sous 0,5 m/s
+     * (≈ 33 min/km) : à l'arrêt, l'allure n'a plus de sens.
+     */
+    fun paceFromSpeed(metersPerSecond: Float): String? {
+        if (metersPerSecond < MIN_SPEED_FOR_PACE) return null
+        val secondsPerKm = Math.round(1000.0 / metersPerSecond)
+        return "%d:%02d".format(secondsPerKm / 60, secondsPerKm % 60)
+    }
+
     private const val MIN_METERS_FOR_PACE = 10.0
+    private const val MIN_SPEED_FOR_PACE = 0.5f
 }

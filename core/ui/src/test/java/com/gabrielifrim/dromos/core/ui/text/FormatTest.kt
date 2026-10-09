@@ -26,6 +26,13 @@ class FormatTest {
     }
 
     @Test
+    fun `l'allure instantanée se déduit de la vitesse`() {
+        // 3 m/s → 333,3 s/km → 5:33.
+        assertThat(Format.paceFromSpeed(3f)).isEqualTo("5:33")
+        assertThat(Format.paceFromSpeed(0.2f)).isNull()
+    }
+
+    @Test
     fun `pas d'allure sans distance`() {
         assertThat(Format.pace(Duration.ofMinutes(3), 0.0)).isNull()
     }
