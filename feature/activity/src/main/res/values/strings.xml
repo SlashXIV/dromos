@@ -3,7 +3,6 @@
     <string name="activity_back">Retour</string>
     <string name="activity_edit">Modifier</string>
     <string name="activity_delete">Supprimer</string>
-    <string name="activity_finished">Sortie enregistrée. Bravo !</string>
     <string name="activity_date_time">%1$s · %2$s</string>
     <string name="activity_distance">Distance</string>
     <string name="activity_moving_time">Durée en mouvement</string>
@@ -24,4 +23,7 @@
     <string name="activity_field_title">Titre</string>
     <string name="activity_field_notes">Notes</string>
     <string name="activity_save">Enregistrer</string>
+    <string name="activity_saved">Sortie enregistrée</string>
+    <string name="activity_arrival">Arrivée</string>
+    <string name="activity_done">Terminé</string>
 </resources>

@@ -35,6 +35,8 @@ fun TraceCanvas(
     modifier: Modifier = Modifier,
     label: String? = null,
     pulse: Boolean = false,
+    progress: Float = 1f,
+    startColor: Color? = null,
 ) {
     val background = MaterialTheme.colorScheme.surfaceContainer
     // Tête qui pulse (1,6 s) sur le tracé en direct, en ambiance expressive seulement.
@@ -49,16 +51,26 @@ fun TraceCanvas(
     Box(modifier) {
         Canvas(Modifier.fillMaxSize()) {
             drawRect(background)
-            val points = segments.flatten()
-            if (points.isEmpty()) return@Canvas
+            val all = segments.flatten()
+            if (all.isEmpty()) return@Canvas
+            // Cadrage sur le tracé entier : il ne bouge pas pendant que le tracé se dessine.
             val projection = TraceProjection(segments, size.width, size.height, padding = 24.dp.toPx())
-            segments.filter { it.size >= 2 }.forEach { segment ->
+            var budget = (all.size * progress.coerceIn(0f, 1f)).toInt().coerceAtLeast(1)
+            val visible = segments.map { segment -> segment.take(budget).also { budget -= it.size } }
+            val points = visible.flatten()
+            visible.filter { it.size >= 2 }.forEach { segment ->
                 val path = Path().apply {
                     moveTo(projection.x(segment.first()), projection.y(segment.first()))
                     segment.drop(1).forEach { lineTo(projection.x(it), projection.y(it)) }
                 }
                 drawPath(path, casing, style = Stroke(width = 9.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
                 drawPath(path, traceColor, style = Stroke(width = 5.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+            }
+            // Départ par-dessus le tracé, qui le couvrirait sinon.
+            startColor?.let {
+                val start = Offset(projection.x(all.first()), projection.y(all.first()))
+                drawCircle(casing, radius = 8.dp.toPx(), center = start)
+                drawCircle(it, radius = 6.dp.toPx(), center = start)
             }
             val last = points.last()
             val center = Offset(projection.x(last), projection.y(last))

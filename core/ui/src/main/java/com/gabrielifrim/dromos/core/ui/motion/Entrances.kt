@@ -20,7 +20,9 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
@@ -97,7 +99,12 @@ private fun RisingLetters(
 ) {
     val level = LocalMotionLevel.current
     if (!level.decorative) {
-        Text(text, style = style, color = color, maxLines = 1, softWrap = false)
+        // Sans mouvement, l'accent reste : il fait partie du titre, pas de l'animation.
+        val styled = buildAnnotatedString {
+            append(text)
+            if (accentFrom < text.length) addStyle(SpanStyle(color = accent), accentFrom, text.length)
+        }
+        Text(styled, style = style, color = color, maxLines = 1, softWrap = false)
         return
     }
     Row(Modifier.clipToBounds()) {
@@ -137,5 +144,7 @@ fun CountUp(
         if (level.decorative) animated.animateTo(value.toFloat(), tween(durationMs, easing = Motion.Enter))
         else animated.snapTo(value.toFloat())
     }
-    FitText(format(animated.value.toDouble()), modifier, style = style, color = color)
+    // Mouvement coupé en cours de route (séquence interrompue) : la valeur finale, tout de suite.
+    val shown = if (LocalMotionLevel.current.decorative) animated.value.toDouble() else value
+    FitText(format(shown), modifier, style = style, color = color)
 }

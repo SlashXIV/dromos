@@ -2,6 +2,15 @@ package com.gabrielifrim.dromos.feature.activity
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
+import com.gabrielifrim.dromos.core.ui.motion.rememberHaptics
+import com.gabrielifrim.dromos.core.ui.motion.MotionLevel
+import com.gabrielifrim.dromos.core.ui.motion.CountUp
+import com.gabrielifrim.dromos.core.map.TraceCanvas
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.material3.Button
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -98,72 +107,117 @@ fun ActivityDetailScreen(
     var editing by rememberSaveable { mutableStateOf(false) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     val activity = state.activity
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                // Le titre vit en affiche dans la page ; la barre ne garde que les actions.
-                title = {},
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.activity_back))
+    // Séquence d'arrivée : jouée une fois, interrompue d'un appui. Couper le mouvement
+    // met chaque brique (titre, compteurs, barres) directement dans son état final.
+    var settled by rememberSaveable { mutableStateOf(!justFinished) }
+    val ambient = LocalMotionLevel.current
+    var sweeping by remember { mutableStateOf(!settled && ambient.decorative) }
+    val haptics = rememberHaptics()
+    LaunchedEffect(activity != null) {
+        if (activity == null || settled) return@LaunchedEffect
+        delay(if (ambient.decorative) SWEEP_MS.toLong() else 0L)
+        haptics.confirm()
+        delay(FINISH_SEQUENCE_MS)
+        settled = true
+    }
+    CompositionLocalProvider(LocalMotionLevel provides if (settled && justFinished) MotionLevel.NONE else ambient) {
+        Box(Modifier.fillMaxSize().onAnyTouch(enabled = !settled) { settled = true; sweeping = false }) {
+            Scaffold(
+                bottomBar = {
+                    if (justFinished) {
+                        Button(
+                            onClick = onBack,
+                            modifier = Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp).heightIn(min = 56.dp),
+                            shape = CircleShape,
+                        ) {
+                            FitText(stringResource(R.string.activity_done).uppercase(), style = DromosTheme.type.action)
+                        }
                     }
                 },
-                actions = {
-                    IconButton(onClick = { editing = true }, enabled = activity != null) {
-                        Icon(Icons.Outlined.Edit, stringResource(R.string.activity_edit))
-                    }
-                    IconButton(onClick = { confirmDelete = true }, enabled = activity != null) {
-                        Icon(Icons.Outlined.Delete, stringResource(R.string.activity_delete))
-                    }
+                topBar = {
+                    TopAppBar(
+                        // Le titre vit en affiche dans la page ; la barre ne garde que les actions.
+                        title = {},
+                        navigationIcon = {
+                            IconButton(onClick = onBack) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.activity_back))
+                            }
+                        },
+                        actions = {
+                            IconButton(onClick = { editing = true }, enabled = activity != null) {
+                                Icon(Icons.Outlined.Edit, stringResource(R.string.activity_edit))
+                            }
+                            IconButton(onClick = { confirmDelete = true }, enabled = activity != null) {
+                                Icon(Icons.Outlined.Delete, stringResource(R.string.activity_delete))
+                            }
+                        },
+                    )
                 },
-            )
-        },
-    ) { padding ->
-        if (activity == null) {
-            Box(Modifier.fillMaxSize().padding(padding), Alignment.Center) { CircularProgressIndicator() }
-            return@Scaffold
-        }
-        LazyColumn(
-            modifier = Modifier.padding(padding),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            if (justFinished) item { FinishedBanner() }
-            item { PosterTitle(activity) }
-            item {
-                val trace = state.analysis?.trace.orEmpty()
-                TrackMap(
-                    segments = trace,
-                    traceColor = DromosTheme.metrics.trace,
-                    online = state.onlineBasemap,
-                    live = false,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(260.dp)
-                        .clip(MaterialTheme.shapes.large),
-                )
-            }
-            item { Totals(activity, Modifier.riseIn(baseDelayMs = 250)) }
-            activity.notes?.let { notes -> item { NotesCard(notes) } }
-            val splits = state.analysis?.splits.orEmpty()
-            if (splits.isNotEmpty()) {
-                item {
-                    Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Rule(delayMs = 300)
-                        Text(
-                            stringResource(R.string.activity_splits).uppercase(),
-                            style = DromosTheme.type.eyebrow,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
+            ) { padding ->
+                if (activity == null) {
+                    Box(Modifier.fillMaxSize().padding(padding), Alignment.Center) { CircularProgressIndicator() }
+                    return@Scaffold
+                }
+                LazyColumn(
+                    modifier = Modifier.padding(padding),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    item { if (justFinished) FinishHeader(activity) else PosterTitle(activity) }
+                    item {
+                        val trace = state.analysis?.trace.orEmpty()
+                        if (justFinished) {
+                            // Arrivée : le tracé se dessine, sans fond de carte (planche « Arrivée »).
+                            TraceCanvas(
+                                segments = trace,
+                                traceColor = DromosTheme.metrics.trace,
+                                progress = drawProgress(trace.isNotEmpty()),
+                                startColor = DromosTheme.metrics.faster,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(260.dp)
+                                    .clip(MaterialTheme.shapes.large),
+                            )
+                        } else {
+                            TrackMap(
+                                segments = trace,
+                                traceColor = DromosTheme.metrics.trace,
+                                online = state.onlineBasemap,
+                                live = false,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(260.dp)
+                                    .clip(MaterialTheme.shapes.large),
+                            )
+                        }
+                    }
+                    item { Totals(activity, Modifier.riseIn(baseDelayMs = if (justFinished) 1_400 else 250), counting = justFinished) }
+                    activity.notes?.let { notes -> item { NotesCard(notes) } }
+                    val splits = state.analysis?.splits.orEmpty()
+                    if (splits.isNotEmpty()) {
+                        item {
+                            Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Rule(delayMs = 300)
+                                Text(
+                                    stringResource(R.string.activity_splits).uppercase(),
+                                    style = DromosTheme.type.eyebrow,
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                            }
+                        }
+                        item { SplitHeader() }
+                        val paces = splits.mapNotNull { it.paceSecondsPerKm }
+                        val average = if (activity.distanceMeters > 0) activity.movingDuration.seconds / activity.distanceMeters * 1000 else null
+                        itemsIndexed(splits, key = { _, it -> it.index }) { index, split ->
+                            SplitRow(
+                                split, index, average, fastest = paces.minOrNull(), slowest = paces.maxOrNull(),
+                                baseDelayMs = if (justFinished) 2_000L else 400L,
+                            )
+                        }
                     }
                 }
-                item { SplitHeader() }
-                val paces = splits.mapNotNull { it.paceSecondsPerKm }
-                val average = if (activity.distanceMeters > 0) activity.movingDuration.seconds / activity.distanceMeters * 1000 else null
-                itemsIndexed(splits, key = { _, it -> it.index }) { index, split ->
-                    SplitRow(split, index, average, fastest = paces.minOrNull(), slowest = paces.maxOrNull())
-                }
             }
+            if (sweeping) FinishLineSweep(onEnd = { sweeping = false })
         }
     }
     if (editing && activity != null) {
@@ -193,19 +247,17 @@ fun ActivityDetailScreen(
     }
 }
 
+/** Avancement du tracé qui se dessine à l'arrivée, après le balayage. */
 @Composable
-private fun FinishedBanner() {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Text(
-            stringResource(R.string.activity_finished).uppercase(),
-            modifier = Modifier.padding(16.dp),
-            style = DromosTheme.type.action,
-            color = MaterialTheme.colorScheme.onSecondaryContainer,
-        )
+private fun drawProgress(ready: Boolean): Float {
+    val decorative = LocalMotionLevel.current.decorative
+    val progress = remember { Animatable(if (decorative) 0f else 1f) }
+    LaunchedEffect(ready) {
+        if (!ready || !decorative) return@LaunchedEffect
+        delay(SWEEP_MS.toLong())
+        progress.animateTo(1f, tween(Motion.DRAW_MS, easing = Motion.Transition))
     }
+    return if (decorative) progress.value else 1f
 }
 
 /** Date en télémétrie, titre en affiche : l'identité de la sortie. */
@@ -229,8 +281,12 @@ private fun PosterTitle(activity: Activity) {
 }
 
 @Composable
-private fun Totals(activity: Activity, modifier: Modifier = Modifier) {
+private fun Totals(activity: Activity, modifier: Modifier = Modifier, counting: Boolean = false) {
     val locale = LocalConfiguration.current.locales[0]
+    if (counting) {
+        CountingTotals(activity, modifier)
+        return
+    }
     val elapsed = activity.endedAt?.let { Duration.between(activity.startedAt, it) }
     val stats = buildList {
         add(stringResource(R.string.activity_distance) to stringResource(UiR.string.unit_km, Format.kilometers(activity.distanceMeters, locale)))
@@ -256,6 +312,57 @@ private fun Totals(activity: Activity, modifier: Modifier = Modifier) {
         }
     }
 }
+
+/**
+ * Totaux de l'arrivée, sur la planche : distance et temps en grand, qui comptent
+ * depuis zéro ; allure et dénivelé en dessous.
+ */
+@Composable
+private fun CountingTotals(activity: Activity, modifier: Modifier) {
+    val locale = LocalConfiguration.current.locales[0]
+    val big = DromosTheme.type.metricLarge
+    val medium = DromosTheme.type.metricLarge.copy(fontSize = DromosTheme.type.metricLarge.fontSize * 0.75f)
+    // Gabarits d'unité lus une fois : le compteur reformate à chaque image.
+    val kmTemplate = stringResource(UiR.string.unit_km, VALUE)
+    val gainTemplate = stringResource(UiR.string.unit_elevation_gain, VALUE)
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            TotalCell(stringResource(R.string.activity_distance), Modifier.weight(1f)) {
+                CountUp(activity.distanceMeters, { kmTemplate.replace(VALUE, Format.kilometers(it, locale)) }, style = big, durationMs = 1_200)
+            }
+            TotalCell(stringResource(R.string.activity_moving_time), Modifier.weight(1f)) {
+                CountUp(activity.movingDuration.seconds.toDouble(), { Format.duration(Duration.ofSeconds(it.toLong())) }, style = big, durationMs = 1_200)
+            }
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            TotalCell(stringResource(R.string.activity_avg_pace), Modifier.weight(1f)) {
+                FitText(
+                    Format.pace(activity.movingDuration, activity.distanceMeters)?.let { stringResource(UiR.string.unit_pace, it) } ?: DASH,
+                    style = medium,
+                )
+            }
+            TotalCell(stringResource(R.string.activity_gain), Modifier.weight(1f)) {
+                CountUp(
+                    activity.elevationGainMeters,
+                    { gainTemplate.replace(VALUE, Format.meters(it)) },
+                    style = medium,
+                    color = DromosTheme.metrics.elevation,
+                    durationMs = 1_200,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TotalCell(label: String, modifier: Modifier, value: @Composable () -> Unit) {
+    Column(modifier) {
+        TelemetryLabel(label, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        value()
+    }
+}
+
+private const val VALUE = "\u0000"
 
 /** « +84 m », mais « 0 m » sans signe quand il n'y a rien : « −0 m » ne veut rien dire. */
 @Composable
@@ -289,7 +396,7 @@ private fun SplitHeader() {
  * rapide, verte s'il est plus rapide que la moyenne, saumon s'il est plus lent.
  */
 @Composable
-private fun SplitRow(split: Split, index: Int, average: Double?, fastest: Double?, slowest: Double?) {
+private fun SplitRow(split: Split, index: Int, average: Double?, fastest: Double?, slowest: Double?, baseDelayMs: Long = 400) {
     val pace = split.paceSecondsPerKm
     val color = when {
         pace == null || average == null -> MaterialTheme.colorScheme.outline
@@ -304,7 +411,7 @@ private fun SplitRow(split: Split, index: Int, average: Double?, fastest: Double
     val grow = remember { Animatable(if (level.decorative) 0f else 1f) }
     LaunchedEffect(Unit) {
         if (!level.decorative) return@LaunchedEffect
-        delay(400L + 70L * index.coerceAtMost(12))
+        delay(baseDelayMs + 70L * index.coerceAtMost(12))
         grow.animateTo(1f, tween(Motion.RELEASE_MS, easing = Motion.Release))
     }
     val label = if (split.distanceMeters < 999.0) {
@@ -324,7 +431,7 @@ private fun SplitRow(split: Split, index: Int, average: Double?, fastest: Double
             Box(
                 Modifier
                     .fillMaxHeight()
-                    .fillMaxWidth(fraction * grow.value.coerceAtLeast(0f))
+                    .fillMaxWidth(fraction * (if (level.decorative) grow.value.coerceAtLeast(0f) else 1f))
                     .clip(MaterialTheme.shapes.extraSmall)
                     .background(color),
             )
