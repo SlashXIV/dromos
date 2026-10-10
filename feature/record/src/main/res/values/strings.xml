@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="record_title">Nouvelle sortie</string>
     <string name="record_back">Retour</string>
     <string name="record_start">Démarrer</string>
@@ -21,7 +21,7 @@
     <string name="record_metric_duration">Durée</string>
     <string name="record_metric_distance">Distance</string>
     <string name="record_metric_avg_pace">Allure moyenne</string>
-    <string name="record_metric_current_pace">Allure instantanée</string>
+    <string name="record_metric_current_pace">Allure</string>
     <string name="record_unit_km">km</string>
     <string name="record_unit_pace">/km</string>
     <string name="record_status_auto_paused">Pause automatique : le chrono repartira avec toi</string>
@@ -45,4 +45,12 @@
     <string name="record_km_banner">Km %1$02d</string>
     <string name="record_km_banner_pace">%1$s/km</string>
     <string name="record_km_banner_delta">%1$s vs moy.</string>
+    <string name="record_gauge_a11y_faster">Allure du moment : %1$s plus rapide que la moyenne de %2$s</string>
+    <string name="record_gauge_a11y_slower">Allure du moment : %1$s plus lente que la moyenne de %2$s</string>
+    <string name="record_gauge_a11y_unknown">Jauge d’allure : moyenne pas encore disponible</string>
+    <string name="record_km_a11y">Kilomètre %1$d</string>
+    <string name="record_km_a11y_split">Kilomètre %1$d en %2$s</string>
+    <string name="record_km_a11y_full">Kilomètre %1$d en %2$s, écart à la moyenne %3$s</string>
+    <string name="record_page_a11y" tools:ignore="PluralsCandidate">Page %1$d sur %2$d</string>
+    <string name="record_countdown_cancel_a11y">annuler le départ</string>
 </resources>

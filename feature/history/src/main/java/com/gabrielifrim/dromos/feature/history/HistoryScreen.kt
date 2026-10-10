@@ -1,5 +1,7 @@
 package com.gabrielifrim.dromos.feature.history
 
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.foundation.layout.heightIn
 import android.content.res.Resources
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -179,7 +181,7 @@ fun HistoryScreen(
                         body = stringResource(
                             if (state.filter == null) R.string.history_empty_body else R.string.history_empty_filtered_body,
                         ),
-                        modifier = Modifier.height(280.dp),
+                        modifier = Modifier.heightIn(min = 280.dp),
                     )
                 }
 
@@ -267,7 +269,7 @@ private fun WeekStrip(week: WeekSummary) {
 
 @Composable
 private fun WeekFigure(label: Int, modifier: Modifier, value: @Composable () -> Unit) {
-    Column(modifier) {
+    Column(modifier.semantics(mergeDescendants = true) {}) {
         value()
         TelemetryLabel(stringResource(label), color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
@@ -343,7 +345,7 @@ private fun ActivityCard(activity: Activity, index: Int, onClick: () -> Unit, mo
                 Text(
                     activity.displayTitle(),
                     style = MaterialTheme.typography.titleMedium,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
                 TelemetryLabel(meta, color = MaterialTheme.colorScheme.onSurfaceVariant)

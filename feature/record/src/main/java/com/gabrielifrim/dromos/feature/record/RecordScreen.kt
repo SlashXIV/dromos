@@ -1,5 +1,12 @@
 package com.gabrielifrim.dromos.feature.record
 
+import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
@@ -312,12 +319,15 @@ private fun ActiveContent(
         }
         // La carte capte les glissements : les points ramènent aussi aux chiffres.
         val switchLabel = stringResource(R.string.record_switch_page)
+        val pageLabel = stringResource(R.string.record_page_a11y, pager.currentPage + 1, PAGES)
         PageDots(
             PAGES,
             pager.currentPage,
             Modifier
                 .align(Alignment.CenterHorizontally)
-                .clickable(onClickLabel = switchLabel) { showPage(1 - pager.currentPage) }
+                .minimumInteractiveComponentSize()
+                .clickable(onClickLabel = switchLabel, role = Role.Button) { showPage(1 - pager.currentPage) }
+                .semantics { contentDescription = pageLabel }
                 .padding(horizontal = 16.dp, vertical = 8.dp),
         )
         Controls(active, onAction, onStopRequest)
@@ -337,12 +347,29 @@ private fun NumbersPage(state: RecordUiState, active: TrackingState.Active, onSh
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(gap)) {
             Column(Modifier.onSizeChanged { abovePx = it.height }, verticalArrangement = Arrangement.spacedBy(gap)) {
                 if (active.recovered) RecoveredBanner()
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.weight(1f)) { RecIndicator(stopped) }
-                    GpsStatus(active)
-                }
-                if (active.autoPaused) {
-                    TelemetryLabel(stringResource(R.string.record_status_auto_paused), color = MaterialTheme.colorScheme.tertiary)
+                // Une phrase par état, annoncée à chaque changement (pause, signal perdu…).
+                // La précision en mètres en est exclue : elle change à chaque seconde.
+                val status = stringResource(
+                    when {
+                        active.paused -> R.string.record_status_paused
+                        active.autoPaused -> R.string.record_status_auto_paused
+                        active.locationError -> R.string.record_status_gps_error
+                        active.lastFixAt == null -> R.string.record_status_searching
+                        else -> R.string.record_status_ok
+                    },
+                )
+                Column(
+                    Modifier.clearAndSetSemantics { contentDescription = status; liveRegion = LiveRegionMode.Polite },
+                    verticalArrangement = Arrangement.spacedBy(gap),
+                ) {
+                    // L'indicateur garde sa largeur ; l'état GPS, plus long, passe à la ligne.
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        RecIndicator(stopped)
+                        Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) { GpsStatus(active) }
+                    }
+                    if (active.autoPaused) {
+                        TelemetryLabel(stringResource(R.string.record_status_auto_paused), color = MaterialTheme.colorScheme.tertiary)
+                    }
                 }
                 Metrics(active, state.movingDuration, compact, gap, Modifier.desaturate(stopped))
             }
@@ -416,21 +443,22 @@ private fun Metrics(active: TrackingState.Active, moving: Duration, compact: Boo
                 unit = stringResource(R.string.record_unit_km),
                 modifier = Modifier.weight(1.2f),
                 size = size,
-                color = MaterialTheme.colorScheme.primary,
+                // Les chiffres restent à l'encre (7:1, lisibles en plein soleil) ; l'accent va au libellé.
+                labelColor = MaterialTheme.colorScheme.primary,
                 rolling = true,
             )
             BigMetric(
                 label = stringResource(R.string.record_metric_current_pace),
                 value = active.currentSpeedMetersPerSecond?.let { Format.paceFromSpeed(it) } ?: PLACEHOLDER,
                 unit = stringResource(R.string.record_unit_pace),
-                modifier = Modifier.weight(1.2f),
+                modifier = Modifier.weight(1f),
                 size = size,
             )
             BigMetric(
                 label = stringResource(R.string.record_metric_elevation),
                 value = Format.meters(active.elevationGainMeters),
                 unit = stringResource(R.string.record_unit_meters),
-                modifier = Modifier.weight(0.8f),
+                modifier = Modifier.weight(1f),
                 size = size,
             )
         }
@@ -446,11 +474,13 @@ private fun BigMetric(
     unit: String? = null,
     size: TextUnit = 48.sp,
     color: Color = Color.Unspecified,
+    labelColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     rolling: Boolean = false,
 ) {
-    Column(modifier) {
+    // Libellé, valeur et unité lus d'un trait : « Distance, 3,42 km ».
+    Column(modifier.semantics(mergeDescendants = true) {}) {
         // Sur une ligne : un libellé qui passe à la ligne décalerait les chiffres de la rangée.
-        FitText(label.uppercase(), style = DromosTheme.type.telemetry, color = MaterialTheme.colorScheme.onSurfaceVariant, minFontSize = 8.sp)
+        FitText(label.uppercase(), style = DromosTheme.type.telemetry, color = labelColor, minFontSize = MIN_LABEL_SIZE)
         Row(verticalAlignment = Alignment.Bottom) {
             // Barlow Condensed tabulaire : le chrono ne fait pas danser la ligne à chaque seconde.
             val style = DromosTheme.type.metricLarge.copy(fontSize = size)
@@ -507,10 +537,16 @@ private fun Controls(active: TrackingState.Active, onAction: (RecordAction) -> U
 @Composable
 private fun ControlLabel(icon: ImageVector, label: String) {
     Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
-    FitText(label.uppercase(), Modifier.padding(start = 6.dp), style = DromosTheme.type.action, minFontSize = 8.sp)
+    FitText(label.uppercase(), Modifier.padding(start = 6.dp), style = DromosTheme.type.action, minFontSize = MIN_LABEL_SIZE)
 }
 
 /** Marges latérales réduites : la place va au libellé, pas au vide autour. */
 private val ControlPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
 
 private const val PLACEHOLDER = "–:––" // texte-technique : tiret d'attente, pas une phrase
+
+/**
+ * Plancher de réduction des libellés. Relatif à l'échelle de police (FitText) : avec une
+ * police système à 200 %, il vaut 16 sp réels ; seuls les très petits écrans à 100 % l'atteignent.
+ */
+private val MIN_LABEL_SIZE = 8.sp

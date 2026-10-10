@@ -1,5 +1,11 @@
 package com.gabrielifrim.dromos.feature.activity
 
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -353,6 +359,7 @@ private fun SectionTitle(@StringRes title: Int) {
             stringResource(title).uppercase(),
             style = DromosTheme.type.eyebrow,
             color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.semantics { heading() },
         )
     }
 }
@@ -413,7 +420,7 @@ private fun Totals(activity: Activity, modifier: Modifier = Modifier, counting: 
         stats.chunked(2).forEach { row ->
             Row(Modifier.fillMaxWidth()) {
                 row.forEach { (label, value) ->
-                    Column(Modifier.weight(1f)) {
+                    Column(Modifier.weight(1f).semantics(mergeDescendants = true) {}) {
                         TelemetryLabel(label, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         FitText(value, style = DromosTheme.type.metric.copy(fontSize = DromosTheme.type.metric.fontSize * 1.45f))
                     }
@@ -466,7 +473,7 @@ private fun CountingTotals(activity: Activity, modifier: Modifier) {
 
 @Composable
 private fun TotalCell(label: String, modifier: Modifier, value: @Composable () -> Unit) {
-    Column(modifier) {
+    Column(modifier.semantics(mergeDescendants = true) {}) {
         TelemetryLabel(label, color = MaterialTheme.colorScheme.onSurfaceVariant)
         value()
     }
@@ -493,12 +500,23 @@ private fun NotesCard(notes: String) {
 
 @Composable
 private fun SplitHeader() {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        TelemetryLabel(stringResource(R.string.activity_split_km), Modifier.width(48.dp), MaterialTheme.colorScheme.onSurfaceVariant)
-        TelemetryLabel(stringResource(R.string.activity_split_pace), Modifier.width(72.dp), MaterialTheme.colorScheme.onSurfaceVariant)
+    // En-têtes visuels seulement : chaque ligne se dit en entier.
+    Row(Modifier.fillMaxWidth().clearAndSetSemantics {}, verticalAlignment = Alignment.CenterVertically) {
+        // Mêmes colonnes fixes que les lignes : l'en-tête se réduit avec elles plutôt que de se couper.
+        SplitHeading(R.string.activity_split_km, Modifier.width(splitColumn(48.dp)))
+        SplitHeading(R.string.activity_split_pace, Modifier.width(splitColumn(72.dp)))
         Box(Modifier.weight(1f))
-        TelemetryLabel(stringResource(R.string.activity_split_gain), Modifier.width(56.dp), MaterialTheme.colorScheme.onSurfaceVariant)
+        SplitHeading(R.string.activity_split_gain, Modifier.width(splitColumn(56.dp)))
     }
+}
+
+/** Colonne de split : elle s'élargit avec la police système (jusqu'à ×1,5), la barre garde le reste. */
+@Composable
+private fun splitColumn(base: Dp): Dp = base * LocalDensity.current.fontScale.coerceIn(1f, 1.5f)
+
+@Composable
+private fun SplitHeading(@StringRes text: Int, modifier: Modifier) {
+    FitText(stringResource(text).uppercase(), modifier, style = DromosTheme.type.telemetry, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
 /**
@@ -529,15 +547,27 @@ private fun SplitRow(split: Split, index: Int, average: Double?, fastest: Double
     } else {
         split.index.toString()
     }
-    Row(Modifier.fillMaxWidth().height(28.dp), verticalAlignment = Alignment.CenterVertically) {
+    // « plus rapide / plus lent » est dit en toutes lettres : couleur et longueur ne suffisent pas.
+    val paceText = pace?.let { Format.paceFromSeconds(it) } ?: DASH
+    val gain = elevation(split.elevationGainMeters, UiR.string.unit_elevation_gain)
+    val description = when {
+        pace == null || average == null -> stringResource(R.string.activity_split_a11y, label, paceText, gain)
+        pace <= average -> stringResource(R.string.activity_split_a11y_faster, label, paceText, gain)
+        else -> stringResource(R.string.activity_split_a11y_slower, label, paceText, gain)
+    }
+    // Hauteur minimale, pas fixe : avec une grande police, la ligne grandit au lieu de rogner.
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 28.dp).clearAndSetSemantics { contentDescription = description },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         // Colonnes à largeur fixe pour rester alignées : le texte se réduit si la police système est grande.
-        FitText(label, Modifier.width(48.dp), style = DromosTheme.type.metric, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        FitText(label, Modifier.width(splitColumn(48.dp)), style = DromosTheme.type.metric, color = MaterialTheme.colorScheme.onSurfaceVariant)
         FitText(
-            pace?.let { Format.paceFromSeconds(it) } ?: DASH,
-            Modifier.width(72.dp),
+            paceText,
+            Modifier.width(splitColumn(72.dp)),
             style = DromosTheme.type.metric,
         )
-        Box(Modifier.weight(1f).fillMaxHeight().padding(vertical = 6.dp)) {
+        Box(Modifier.weight(1f).height(28.dp).padding(vertical = 6.dp)) {
             Box(
                 Modifier
                     .fillMaxHeight()
@@ -547,8 +577,8 @@ private fun SplitRow(split: Split, index: Int, average: Double?, fastest: Double
             )
         }
         FitText(
-            elevation(split.elevationGainMeters, UiR.string.unit_elevation_gain),
-            Modifier.width(56.dp).padding(start = 8.dp),
+            gain,
+            Modifier.width(splitColumn(56.dp)).padding(start = 8.dp),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

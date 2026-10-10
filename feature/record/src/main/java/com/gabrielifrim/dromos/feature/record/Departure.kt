@@ -1,5 +1,7 @@
 package com.gabrielifrim.dromos.feature.record
 
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -125,7 +127,21 @@ fun GpsTelemetry(gps: GpsWarmup) {
     } else {
         1f
     }
-    TelemetryLabel("● $text", Modifier.graphicsLayer { alpha = blink }, color)
+    // Annoncé au passage RECHERCHE → PRÊT ; ni le « ● » ni la précision, qui varie sans cesse.
+    val status = stringResource(
+        when (gps.readiness) {
+            GpsReadiness.OFF -> R.string.record_gps_off
+            GpsReadiness.SEARCHING -> R.string.record_gps_searching
+            GpsReadiness.READY -> R.string.record_gps_ready
+        },
+    )
+    TelemetryLabel(
+        "● $text",
+        Modifier
+            .graphicsLayer { alpha = blink }
+            .clearAndSetSemantics { contentDescription = status; liveRegion = LiveRegionMode.Polite },
+        color,
+    )
 }
 
 /**
@@ -159,17 +175,28 @@ fun Countdown(vibrate: Boolean, onDone: () -> Unit, onCancel: () -> Unit) {
         Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .clickable(remember { MutableInteractionSource() }, indication = null, onClick = onCancel)
+            .clickable(
+                remember { MutableInteractionSource() },
+                indication = null,
+                onClickLabel = stringResource(R.string.record_countdown_cancel_a11y),
+                onClick = onCancel,
+            )
             .semantics {
                 liveRegion = LiveRegionMode.Assertive
                 contentDescription = description
             },
         contentAlignment = Alignment.Center,
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(24.dp)) {
+        // Le chiffre et la consigne sont déjà dans la description du plein écran.
+        Column(
+            Modifier.clearAndSetSemantics {},
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(24.dp),
+        ) {
             Text(
                 value.toString(),
-                style = DromosTheme.type.metricHuge.copy(fontSize = 280.sp),
+                // En dp : avec une grande police système, 280 sp déborderait de l'écran.
+                style = DromosTheme.type.metricHuge.copy(fontSize = with(LocalDensity.current) { 280.dp.toSp() }),
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.graphicsLayer {
                     scaleX = pop.value

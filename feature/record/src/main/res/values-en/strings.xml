@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="record_title">New activity</string>
     <string name="record_back">Back</string>
     <string name="record_start">Start</string>
@@ -21,7 +21,7 @@
     <string name="record_metric_duration">Time</string>
     <string name="record_metric_distance">Distance</string>
     <string name="record_metric_avg_pace">Average pace</string>
-    <string name="record_metric_current_pace">Current pace</string>
+    <string name="record_metric_current_pace">Pace</string>
     <string name="record_unit_km">km</string>
     <string name="record_unit_pace">/km</string>
     <string name="record_status_auto_paused">Auto-paused: the timer resumes when you move</string>
@@ -45,4 +45,12 @@
     <string name="record_km_banner">Km %1$02d</string>
     <string name="record_km_banner_pace">%1$s/km</string>
     <string name="record_km_banner_delta">%1$s vs avg</string>
+    <string name="record_gauge_a11y_faster">Current pace: %1$s faster than the %2$s average</string>
+    <string name="record_gauge_a11y_slower">Current pace: %1$s slower than the %2$s average</string>
+    <string name="record_gauge_a11y_unknown">Pace gauge: average not available yet</string>
+    <string name="record_km_a11y">Kilometre %1$d</string>
+    <string name="record_km_a11y_split">Kilometre %1$d in %2$s</string>
+    <string name="record_km_a11y_full">Kilometre %1$d in %2$s, %3$s versus average</string>
+    <string name="record_page_a11y" tools:ignore="PluralsCandidate">Page %1$d of %2$d</string>
+    <string name="record_countdown_cancel_a11y">cancel the start</string>
 </resources>

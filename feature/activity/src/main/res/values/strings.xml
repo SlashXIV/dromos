@@ -43,4 +43,7 @@
     <string name="activity_share_chooser">Partager la sortie</string>
     <string name="activity_export_saved">Fichier enregistré</string>
     <string name="activity_export_failed">Export impossible</string>
+    <string name="activity_split_a11y">Kilomètre %1$s : %2$s par kilomètre, %3$s</string>
+    <string name="activity_split_a11y_faster">Kilomètre %1$s : %2$s par kilomètre, plus rapide que la moyenne, %3$s</string>
+    <string name="activity_split_a11y_slower">Kilomètre %1$s : %2$s par kilomètre, plus lent que la moyenne, %3$s</string>
 </resources>

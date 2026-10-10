@@ -26,4 +26,5 @@
     <string name="settings_motion_calm_body">Motion kept to the essentials: no animated backgrounds, short transitions.</string>
     <string name="settings_vibrations">Vibrations</string>
     <string name="settings_vibrations_body">One per countdown second, two at each kilometre: the info without taking out your phone.</string>
+    <string name="settings_battery_open">open battery settings</string>
 </resources>

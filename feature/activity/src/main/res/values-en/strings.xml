@@ -43,4 +43,7 @@
     <string name="activity_share_chooser">Share activity</string>
     <string name="activity_export_saved">File saved</string>
     <string name="activity_export_failed">Export failed</string>
+    <string name="activity_split_a11y">Kilometre %1$s: %2$s per kilometre, %3$s</string>
+    <string name="activity_split_a11y_faster">Kilometre %1$s: %2$s per kilometre, faster than average, %3$s</string>
+    <string name="activity_split_a11y_slower">Kilometre %1$s: %2$s per kilometre, slower than average, %3$s</string>
 </resources>

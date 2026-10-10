@@ -26,4 +26,5 @@
     <string name="settings_motion_calm_body">Mouvement réduit au strict utile : aucun fond animé, transitions brèves.</string>
     <string name="settings_vibrations">Vibrations</string>
     <string name="settings_vibrations_body">Une par seconde du compte à rebours, deux à chaque kilomètre : l’info sans sortir le téléphone.</string>
+    <string name="settings_battery_open">ouvrir les réglages de batterie</string>
 </resources>

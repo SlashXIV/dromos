@@ -20,6 +20,9 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -76,7 +79,9 @@ fun RisingText(
     startDelayMs: Int = 150,
 ) {
     // Titre d'affiche : il ne passe jamais à la ligne ni ne déborde, il se réduit.
-    BoxWithConstraints(modifier) {
+    // Un seul nœud pour TalkBack : animées, les lettres sont autant de Text, qui
+    // seraient épelées une à une.
+    BoxWithConstraints(modifier.clearAndSetSemantics { contentDescription = text; heading() }) {
         val measurer = rememberTextMeasurer()
         val maxWidthPx = constraints.maxWidth
         val fitted = remember(text, style, maxWidthPx) {

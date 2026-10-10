@@ -1,5 +1,7 @@
 package com.gabrielifrim.dromos.feature.settings
 
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.heading
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
@@ -151,7 +153,7 @@ private fun SectionTitle(text: String, modifier: Modifier = Modifier) {
         text = text.uppercase(),
         style = DromosTheme.type.eyebrow,
         color = MaterialTheme.colorScheme.primary,
-        modifier = modifier,
+        modifier = modifier.semantics { heading() },
     )
 }
 
@@ -167,7 +169,7 @@ private fun BatteryRow() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable {
+            .clickable(onClickLabel = stringResource(R.string.settings_battery_open), role = Role.Button) {
                 val intent = if (unrestricted) BatteryOptimization.manufacturerIntent(context)
                 else BatteryOptimization.requestIntent(context)
                 BatteryOptimization.open(context, intent)

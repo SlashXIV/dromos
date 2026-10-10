@@ -1,5 +1,6 @@
 package com.gabrielifrim.dromos.feature.activity
 
+import androidx.compose.ui.semantics.heading
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -97,7 +98,7 @@ private fun Readout(samples: List<ProfileSample>, cursor: Int?, hasElevation: Bo
 
 @Composable
 private fun ChartTitle(text: String) {
-    TelemetryLabel(text, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    TelemetryLabel(text, Modifier.semantics { heading() }, MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
 @Composable

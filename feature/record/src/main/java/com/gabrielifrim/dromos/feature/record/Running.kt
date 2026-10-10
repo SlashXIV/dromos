@@ -1,5 +1,10 @@
 package com.gabrielifrim.dromos.feature.record
 
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -85,13 +90,25 @@ fun PaceGauge(currentSecondsPerKm: Double?, averageSecondsPerKm: Double?, modifi
         position < 0.5f -> faster
         else -> slower
     }
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            TelemetryLabel(stringResource(R.string.record_gauge_faster), color = mark)
-            averageSecondsPerKm?.let {
-                TelemetryLabel(stringResource(R.string.record_gauge_average, Format.paceFromSeconds(it)), color = mark)
-            }
-            TelemetryLabel(stringResource(R.string.record_gauge_slower), color = mark)
+    // La position du curseur est l'information : elle est dite en une phrase.
+    val description = if (known) {
+        val gap = Format.paceFromSeconds(kotlin.math.abs(currentSecondsPerKm!! - averageSecondsPerKm!!))
+        val average = Format.paceFromSeconds(averageSecondsPerKm)
+        if (currentSecondsPerKm <= averageSecondsPerKm) stringResource(R.string.record_gauge_a11y_faster, gap, average)
+        else stringResource(R.string.record_gauge_a11y_slower, gap, average)
+    } else {
+        stringResource(R.string.record_gauge_a11y_unknown)
+    }
+    Column(modifier.clearAndSetSemantics { contentDescription = description }, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Trois tiers qui se réduisent : avec une grande police, les étiquettes ne se chevauchent pas.
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            GaugeLabel(stringResource(R.string.record_gauge_faster), mark, Alignment.CenterStart)
+            GaugeLabel(
+                averageSecondsPerKm?.let { stringResource(R.string.record_gauge_average, Format.paceFromSeconds(it)) }.orEmpty(),
+                mark,
+                Alignment.Center,
+            )
+            GaugeLabel(stringResource(R.string.record_gauge_slower), mark, Alignment.CenterEnd)
         }
         // Hauteur = halo du curseur : rien ne déborde, même sous la désaturation qui rogne au cadre.
         Canvas(Modifier.fillMaxWidth().height(32.dp)) {
@@ -110,6 +127,13 @@ fun PaceGauge(currentSecondsPerKm: Double?, averageSecondsPerKm: Double?, modifi
     }
 }
 
+@Composable
+private fun RowScope.GaugeLabel(text: String, color: Color, alignment: Alignment) {
+    Box(Modifier.weight(1f), contentAlignment = alignment) {
+        FitText(text.uppercase(), style = DromosTheme.type.telemetry, color = color, minFontSize = 8.sp)
+    }
+}
+
 /**
  * Bandeau de kilomètre : tombe du haut avec un léger rebond, reste
  * le temps d’être lu (RecordViewModel.BANNER_MS), repart. Lu par TalkBack au passage.
@@ -120,9 +144,23 @@ fun KmBanner(event: TrackingEvent.Kilometer?, modifier: Modifier = Modifier) {
     // Garde le dernier contenu pendant la sortie du bandeau.
     var shown by remember { mutableStateOf(event) }
     if (event != null) shown = event
+    // Annonce portée par un nœud qui existe avant le bandeau : un nœud qui apparaît
+    // en même temps que son texte n'est pas annoncé de façon fiable.
+    val announcement = event?.let { km ->
+        val split = km.split?.let { Format.paceFromSeconds(it.seconds.toDouble()) }
+        val delta = km.versusAverage?.let { Format.paceDelta(it) }
+        when {
+            split != null && delta != null -> stringResource(R.string.record_km_a11y_full, km.number, split, delta)
+            split != null -> stringResource(R.string.record_km_a11y_split, km.number, split)
+            else -> stringResource(R.string.record_km_a11y, km.number)
+        }
+    }
+    Box(modifier.clearAndSetSemantics {
+        liveRegion = LiveRegionMode.Polite
+        announcement?.let { contentDescription = it }
+    }) {
     AnimatedVisibility(
         visible = event != null,
-        modifier = modifier,
         enter = if (animates) slideInVertically(tween(Motion.RELEASE_MS, easing = Motion.Release)) { -it * 2 } + fadeIn() else fadeIn(tween(0)),
         exit = if (animates) slideOutVertically(tween(Motion.TRANSITION_MS, easing = Motion.Transition)) { -it * 2 } + fadeOut() else fadeOut(tween(0)),
     ) {
@@ -134,8 +172,7 @@ fun KmBanner(event: TrackingEvent.Kilometer?, modifier: Modifier = Modifier) {
                 .heightIn(min = 64.dp)
                 .clip(RoundedCornerShape(16.dp))
                 .background(MaterialTheme.colorScheme.primary)
-                .padding(horizontal = 18.dp, vertical = 8.dp)
-                .semantics { liveRegion = LiveRegionMode.Polite },
+                .padding(horizontal = 18.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -156,6 +193,7 @@ fun KmBanner(event: TrackingEvent.Kilometer?, modifier: Modifier = Modifier) {
                 TelemetryLabel(stringResource(R.string.record_km_banner_delta, Format.paceDelta(it)), color = ink)
             }
         }
+    }
     }
 }
 
