@@ -2,6 +2,7 @@ package com.gabrielifrim.dromos.feature.history
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import com.gabrielifrim.dromos.core.ui.motion.sharedTrace
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -291,6 +292,8 @@ private fun ActivityCard(activity: Activity, index: Int, onClick: () -> Unit, mo
             Box(
                 Modifier
                     .size(76.dp)
+                    // Le tracé grandit jusqu'à la carte du détail.
+                    .sharedTrace(activity.id)
                     .background(MaterialTheme.colorScheme.surfaceContainer, RoundedCornerShape(12.dp)),
             ) {
                 TraceThumbnail(

@@ -2,6 +2,8 @@ package com.gabrielifrim.dromos.feature.activity
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
+import com.gabrielifrim.dromos.core.ui.motion.screenTransitionRunning
+import com.gabrielifrim.dromos.core.ui.motion.sharedTrace
 import com.gabrielifrim.dromos.core.ui.motion.rememberHaptics
 import com.gabrielifrim.dromos.core.ui.motion.MotionLevel
 import com.gabrielifrim.dromos.core.ui.motion.CountUp
@@ -179,16 +181,28 @@ fun ActivityDetailScreen(
                                     .clip(MaterialTheme.shapes.large),
                             )
                         } else {
-                            TrackMap(
-                                segments = trace,
-                                traceColor = DromosTheme.metrics.trace,
-                                online = state.onlineBasemap,
-                                live = false,
-                                modifier = Modifier
+                            // Arrivée depuis l'historique : la vignette grandit jusqu'ici. Le temps de la
+                            // transition, le tracé seul, comme la vignette ; la carte ensuite, car sa
+                            // surface OpenGL ne suit ni découpe ni déformation.
+                            Box(
+                                Modifier
                                     .fillMaxWidth()
                                     .height(260.dp)
+                                    .sharedTrace(activity.id)
                                     .clip(MaterialTheme.shapes.large),
-                            )
+                            ) {
+                                if (screenTransitionRunning()) {
+                                    TraceCanvas(trace, DromosTheme.metrics.trace, Modifier.fillMaxSize())
+                                } else {
+                                    TrackMap(
+                                        segments = trace,
+                                        traceColor = DromosTheme.metrics.trace,
+                                        online = state.onlineBasemap,
+                                        live = false,
+                                        modifier = Modifier.fillMaxSize(),
+                                    )
+                                }
+                            }
                         }
                     }
                     item { Totals(activity, Modifier.riseIn(baseDelayMs = if (justFinished) 1_400 else 250), counting = justFinished) }
