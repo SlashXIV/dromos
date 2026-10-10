@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
@@ -108,6 +109,8 @@ fun ActivityDetailScreen(
 ) {
     var editing by rememberSaveable { mutableStateOf(false) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
+    // Curseur des profils : un échantillon, retrouvé sur les graphiques et sur la carte.
+    var cursor by rememberSaveable { mutableStateOf<Int?>(null) }
     val activity = state.activity
     // Séquence d'arrivée : jouée une fois, interrompue d'un appui. Couper le mouvement
     // met chaque brique (titre, compteurs, barres) directement dans son état final.
@@ -166,6 +169,8 @@ fun ActivityDetailScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     item { if (justFinished) FinishHeader(activity) else PosterTitle(activity) }
+                    val profile = state.analysis?.profile.orEmpty()
+                    val cursorPoint = cursor?.let { profile.getOrNull(it)?.position }
                     item {
                         val trace = state.analysis?.trace.orEmpty()
                         if (justFinished) {
@@ -175,6 +180,7 @@ fun ActivityDetailScreen(
                                 traceColor = DromosTheme.metrics.trace,
                                 progress = drawProgress(trace.isNotEmpty()),
                                 startColor = DromosTheme.metrics.faster,
+                                cursor = cursorPoint,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(260.dp)
@@ -192,33 +198,41 @@ fun ActivityDetailScreen(
                                     .clip(MaterialTheme.shapes.large),
                             ) {
                                 if (screenTransitionRunning()) {
-                                    TraceCanvas(trace, DromosTheme.metrics.trace, Modifier.fillMaxSize())
+                                    TraceCanvas(trace, DromosTheme.metrics.trace, Modifier.fillMaxSize(), cursor = cursorPoint)
                                 } else {
                                     TrackMap(
                                         segments = trace,
                                         traceColor = DromosTheme.metrics.trace,
                                         online = state.onlineBasemap,
                                         live = false,
+                                        cursor = cursorPoint,
                                         modifier = Modifier.fillMaxSize(),
                                     )
                                 }
                             }
                         }
                     }
+                    // Les profils sous la carte, pour voir le curseur s'y déplacer ; à l'arrivée,
+                    // après les totaux, qui restent le premier chiffre lu.
+                    val profiles: LazyListScope.() -> Unit = {
+                        if (profile.size >= 2) {
+                            item {
+                                SectionTitle(R.string.activity_profiles)
+                            }
+                            item {
+                                // La moyenne de la sortie (temps / distance), la même que dans les totaux.
+                                val average = if (activity.distanceMeters >= 10) activity.movingDuration.seconds * 1000.0 / activity.distanceMeters else null
+                                Profiles(profile, cursor, onCursor = { cursor = it }, average, delayMs = if (justFinished) 2_000L else 300L)
+                            }
+                        }
+                    }
+                    if (!justFinished) profiles()
                     item { Totals(activity, Modifier.riseIn(baseDelayMs = if (justFinished && ambient.decorative) 1_400 else 250), counting = justFinished) }
+                    if (justFinished) profiles()
                     activity.notes?.let { notes -> item { NotesCard(notes) } }
                     val splits = state.analysis?.splits.orEmpty()
                     if (splits.isNotEmpty()) {
-                        item {
-                            Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                                Rule(delayMs = 300)
-                                Text(
-                                    stringResource(R.string.activity_splits).uppercase(),
-                                    style = DromosTheme.type.eyebrow,
-                                    color = MaterialTheme.colorScheme.primary,
-                                )
-                            }
-                        }
+                        item { SectionTitle(R.string.activity_splits) }
                         item { SplitHeader() }
                         val paces = splits.mapNotNull { it.paceSecondsPerKm }
                         val average = if (activity.distanceMeters > 0) activity.movingDuration.seconds / activity.distanceMeters * 1000 else null
@@ -257,6 +271,19 @@ fun ActivityDetailScreen(
             dismissButton = {
                 TextButton(onClick = { confirmDelete = false }) { Text(stringResource(R.string.activity_cancel)) }
             },
+        )
+    }
+}
+
+/** Titre de section : filet qui se trace, surtitre en capitales espacées. */
+@Composable
+private fun SectionTitle(@StringRes title: Int) {
+    Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Rule(delayMs = 300)
+        Text(
+            stringResource(title).uppercase(),
+            style = DromosTheme.type.eyebrow,
+            color = MaterialTheme.colorScheme.primary,
         )
     }
 }

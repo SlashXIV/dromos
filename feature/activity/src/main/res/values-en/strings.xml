@@ -26,4 +26,15 @@
     <string name="activity_saved">Activity saved</string>
     <string name="activity_arrival">Finish</string>
     <string name="activity_done">Done</string>
+    <string name="activity_profiles">Profiles</string>
+    <string name="activity_profile_elevation">Elevation</string>
+    <string name="activity_profile_pace">Pace</string>
+    <string name="activity_profile_km">Km %1$s</string>
+    <string name="activity_profile_altitude">%1$s m</string>
+    <string name="activity_profile_pace_value">%1$s /km</string>
+    <string name="activity_profile_faster">↑ Faster</string>
+    <string name="activity_profile_slower">↓ Slower</string>
+    <string name="activity_profile_average">Avg %1$s</string>
+    <string name="activity_profile_elevation_a11y">Elevation profile, from %1$s to %2$s metres. Tap or drag to read a point.</string>
+    <string name="activity_profile_pace_a11y">Pace profile, from %1$s to %2$s per kilometre. Tap or drag to read a point.</string>
 </resources>

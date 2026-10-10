@@ -26,4 +26,15 @@
     <string name="activity_saved">Sortie enregistrée</string>
     <string name="activity_arrival">Arrivée</string>
     <string name="activity_done">Terminé</string>
+    <string name="activity_profiles">Profils</string>
+    <string name="activity_profile_elevation">Altitude</string>
+    <string name="activity_profile_pace">Allure</string>
+    <string name="activity_profile_km">Km %1$s</string>
+    <string name="activity_profile_altitude">%1$s m</string>
+    <string name="activity_profile_pace_value">%1$s /km</string>
+    <string name="activity_profile_faster">↑ Plus rapide</string>
+    <string name="activity_profile_slower">↓ Plus lent</string>
+    <string name="activity_profile_average">Moy. %1$s</string>
+    <string name="activity_profile_elevation_a11y">Profil d’altitude, de %1$s à %2$s mètres. Touche ou glisse pour lire un point.</string>
+    <string name="activity_profile_pace_a11y">Profil d’allure, de %1$s à %2$s par kilomètre. Touche ou glisse pour lire un point.</string>
 </resources>

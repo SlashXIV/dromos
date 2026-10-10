@@ -69,6 +69,7 @@ fun TrackMap(
     online: Boolean,
     modifier: Modifier = Modifier,
     live: Boolean = true,
+    cursor: GeoPoint? = null,
 ) {
     var failed by remember { mutableStateOf(false) }
     if (segments.all { it.isEmpty() }) {
@@ -82,6 +83,7 @@ fun TrackMap(
             traceColor = traceColor,
             modifier = modifier,
             label = stringResource(if (online) R.string.map_unavailable else R.string.map_offline),
+            cursor = cursor,
         )
         return
     }
@@ -89,6 +91,8 @@ fun TrackMap(
     val context = LocalContext.current
     val dark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     val casingColor = if (dark) Color(0xFF111315) else Color.White
+    // Curseur à l’encre : neutre, il ne se confond ni avec le tracé ni avec la tête.
+    val cursorColor = MaterialTheme.colorScheme.onSurface
     // Couleur affichée pendant le chargement du style : celle du thème, pour
     // éviter un rectangle beige en thème sombre.
     val loadColor = MaterialTheme.colorScheme.surfaceContainer.toArgb()
@@ -128,6 +132,7 @@ fun TrackMap(
         m.setStyle(Style.Builder().fromUri(if (dark) MapStyles.DARK else MapStyles.LIGHT)) { loaded ->
             loaded.addSource(GeoJsonSource(TRACE_SOURCE))
             loaded.addSource(GeoJsonSource(POSITION_SOURCE))
+            loaded.addSource(GeoJsonSource(CURSOR_SOURCE))
             loaded.addLayer(
                 LineLayer(TRACE_CASING, TRACE_SOURCE).withProperties(
                     PropertyFactory.lineColor(casingColor.toArgb()),
@@ -162,8 +167,25 @@ fun TrackMap(
                     PropertyFactory.circleStrokeWidth(3f),
                 ),
             )
+            // Curseur des graphiques : au-dessus de tout, cerclé pour rester lisible sur le tracé.
+            loaded.addLayer(
+                CircleLayer(CURSOR_LAYER, CURSOR_SOURCE).withProperties(
+                    PropertyFactory.circleRadius(6f),
+                    PropertyFactory.circleColor(cursorColor.toArgb()),
+                    PropertyFactory.circleStrokeColor(casingColor.toArgb()),
+                    PropertyFactory.circleStrokeWidth(3f),
+                ),
+            )
             style = loaded
         }
+    }
+
+    // Déplacer le curseur ne touche pas à la caméra : la carte reste cadrée sur le tracé.
+    LaunchedEffect(style, cursor) {
+        val s = style ?: return@LaunchedEffect
+        s.getSourceAs<GeoJsonSource>(CURSOR_SOURCE)?.setGeoJson(
+            FeatureCollection.fromFeatures(listOfNotNull(cursor?.let { Feature.fromGeometry(it.toPoint()) })),
+        )
     }
 
     // Couleur du tracé : suit la palette sans recharger le style.
@@ -277,6 +299,8 @@ private const val TRACE_CASING = "dromos-trace-casing"
 private const val TRACE_LINE = "dromos-trace-line"
 private const val POSITION_LAYER = "dromos-position"
 private const val POSITION_HALO = "dromos-position-halo"
+private const val CURSOR_SOURCE = "dromos-cursor"
+private const val CURSOR_LAYER = "dromos-cursor"
 private const val FOLLOW_ZOOM = 16.0
 private const val MIN_FOLLOW_ZOOM = 12.0
 private const val CAMERA_MS = 600

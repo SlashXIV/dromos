@@ -37,7 +37,9 @@ fun TraceCanvas(
     pulse: Boolean = false,
     progress: Float = 1f,
     startColor: Color? = null,
+    cursor: GeoPoint? = null,
 ) {
+    val cursorColor = MaterialTheme.colorScheme.onSurface
     val background = MaterialTheme.colorScheme.surfaceContainer
     // Tête qui pulse (1,6 s) sur le tracé en direct, en ambiance expressive seulement.
     val beat = if (pulse && LocalMotionLevel.current.decorative) {
@@ -77,6 +79,11 @@ fun TraceCanvas(
             drawCircle(traceColor.copy(alpha = 0.35f * (1f - beat)), radius = 9.dp.toPx() * (1f + beat), center = center)
             drawCircle(casing, radius = 9.dp.toPx(), center = center)
             drawCircle(traceColor, radius = 6.dp.toPx(), center = center)
+            cursor?.let {
+                val at = Offset(projection.x(it), projection.y(it))
+                drawCircle(casing, radius = 8.dp.toPx(), center = at)
+                drawCircle(cursorColor, radius = 6.dp.toPx(), center = at)
+            }
         }
         if (label != null) {
             Text(

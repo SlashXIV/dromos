@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.gabrielifrim.dromos.core.domain.analysis.ActivityAnalyzer
 import com.gabrielifrim.dromos.core.domain.analysis.Split
+import com.gabrielifrim.dromos.core.domain.analysis.ProfileSample
+import com.gabrielifrim.dromos.core.domain.analysis.ProfileBuilder
 import com.gabrielifrim.dromos.core.domain.model.Activity
 import com.gabrielifrim.dromos.core.domain.model.GeoPoint
 import com.gabrielifrim.dromos.core.domain.repository.ActivityRepository
@@ -27,6 +29,7 @@ import kotlinx.coroutines.withContext
 data class ActivityAnalysis(
     val trace: List<List<GeoPoint>>,
     val splits: List<Split>,
+    val profile: List<ProfileSample> = emptyList(),
 )
 
 data class ActivityDetailUiState(
@@ -77,6 +80,7 @@ class ActivityDetailViewModel @AssistedInject constructor(
                     trace = points.groupBy { it.segment }.toSortedMap().values
                         .map { segment -> segment.map { GeoPoint(it.latitude, it.longitude) } },
                     splits = ActivityAnalyzer.splits(points, activity.type, activity.autoPause),
+                    profile = ProfileBuilder.build(points),
                 )
             }
         }
