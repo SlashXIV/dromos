@@ -205,7 +205,7 @@ fun ActivityDetailScreen(
                             }
                         }
                     }
-                    item { Totals(activity, Modifier.riseIn(baseDelayMs = if (justFinished) 1_400 else 250), counting = justFinished) }
+                    item { Totals(activity, Modifier.riseIn(baseDelayMs = if (justFinished && ambient.decorative) 1_400 else 250), counting = justFinished) }
                     activity.notes?.let { notes -> item { NotesCard(notes) } }
                     val splits = state.analysis?.splits.orEmpty()
                     if (splits.isNotEmpty()) {
