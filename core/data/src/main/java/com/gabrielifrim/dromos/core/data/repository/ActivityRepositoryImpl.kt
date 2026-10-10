@@ -1,9 +1,12 @@
 package com.gabrielifrim.dromos.core.data.repository
 
+import androidx.room.withTransaction
 import com.gabrielifrim.dromos.core.data.dao.ActivityDao
 import com.gabrielifrim.dromos.core.data.dao.TrackPointDao
+import com.gabrielifrim.dromos.core.data.database.DromosDatabase
 import com.gabrielifrim.dromos.core.data.mapper.PreviewCodec
 import com.gabrielifrim.dromos.core.data.mapper.toDomain
+import com.gabrielifrim.dromos.core.data.mapper.toEntity
 import com.gabrielifrim.dromos.core.domain.geo.TraceSimplifier
 import com.gabrielifrim.dromos.core.domain.model.Activity
 import com.gabrielifrim.dromos.core.domain.model.ActivityStatus
@@ -16,6 +19,7 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 internal class ActivityRepositoryImpl @Inject constructor(
+    private val database: DromosDatabase,
     private val activityDao: ActivityDao,
     private val trackPointDao: TrackPointDao,
 ) : ActivityRepository {
@@ -38,6 +42,18 @@ internal class ActivityRepositoryImpl @Inject constructor(
 
     // Les points suivent par ON DELETE CASCADE.
     override suspend fun delete(id: Long) = activityDao.delete(id)
+
+    override suspend fun importActivity(activity: Activity, points: List<TrackPoint>): Long? =
+        database.withTransaction {
+            // Réimporter un fichier, ou une sortie exportée d'ici, ne doit pas la dédoubler.
+            // Le premier point fait foi : le départ enregistré le précède de quelques secondes.
+            val first = points.firstOrNull() ?: return@withTransaction null
+            if (trackPointDao.existsAt(first.timestamp.toEpochMilli())) return@withTransaction null
+            val preview = TraceSimplifier.simplify(points.map { GeoPoint(it.latitude, it.longitude) })
+            val id = activityDao.insert(activity.copy(id = 0, preview = preview).toEntity())
+            trackPointDao.insertAll(points.map { it.toEntity(id) })
+            id
+        }
 
     override suspend fun backfillPreviews() {
         activityDao.idsWithoutPreview(ActivityStatus.FINISHED.name).forEach { id ->

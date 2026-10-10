@@ -29,6 +29,7 @@ include(":core:ui")
 include(":core:location")
 include(":core:tracking")
 include(":core:map")
+include(":core:gpx")
 
 include(":feature:history")
 include(":feature:settings")

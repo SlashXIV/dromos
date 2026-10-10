@@ -2,6 +2,7 @@ package com.gabrielifrim.dromos.core.domain.analysis
 
 import com.gabrielifrim.dromos.core.domain.model.ActivityType
 import com.gabrielifrim.dromos.core.domain.model.TrackPoint
+import com.gabrielifrim.dromos.core.domain.model.TrackTotals
 import com.gabrielifrim.dromos.core.domain.tracking.AutoPauseDetector
 import com.gabrielifrim.dromos.core.domain.tracking.TrackAccumulator
 import java.time.Duration
@@ -64,6 +65,17 @@ object ActivityAnalyzer {
             splits += Split(index, distance, seconds.toDuration(), gain, loss)
         }
         return splits
+    }
+
+    /** Totaux d'une trace qui n'a pas été suivie en direct (import) : les mêmes filtres, rejoués. */
+    fun totals(points: List<TrackPoint>, type: ActivityType, autoPause: Boolean): TrackTotals {
+        val intervals = replay(points, type, autoPause)
+        return TrackTotals(
+            distanceMeters = intervals.sumOf { it.distance },
+            movingDuration = intervals.filter { it.moving }.sumOf { it.seconds }.toDuration(),
+            elevationGainMeters = intervals.sumOf { it.gain },
+            elevationLossMeters = intervals.sumOf { it.loss },
+        )
     }
 
     private fun replay(points: List<TrackPoint>, type: ActivityType, autoPause: Boolean): List<Interval> {

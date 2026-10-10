@@ -19,6 +19,12 @@ interface ActivityRepository {
 
     suspend fun delete(id: Long)
 
+    /**
+     * Enregistre une sortie terminée venue d'ailleurs (import), avec ses points.
+     * @return son identifiant, ou null si une sortie contient déjà son premier point (doublon).
+     */
+    suspend fun importActivity(activity: Activity, points: List<TrackPoint>): Long?
+
     /** Calcule l'aperçu des sorties qui n'en ont pas (enregistrées avant la v0.7). */
     suspend fun backfillPreviews()
 }
