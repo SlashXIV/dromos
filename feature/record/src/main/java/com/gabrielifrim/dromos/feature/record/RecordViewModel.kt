@@ -48,6 +48,7 @@ data class RecordUiState(
     val onlineBasemap: Boolean = true,
     val batteryPromptDismissed: Boolean = false,
     val countdown: Boolean = true,
+    val vibrations: Boolean = true,
     val gps: GpsWarmup = GpsWarmup(),
     /** Kilomètre tout juste franchi : le bandeau reste quelques secondes. */
     val kmBanner: TrackingEvent.Kilometer? = null,
@@ -145,6 +146,7 @@ class RecordViewModel @Inject constructor(
             onlineBasemap = map.onlineBasemap,
             batteryPromptDismissed = prefs.batteryPromptDismissed,
             countdown = prefs.countdown,
+            vibrations = prefs.vibrations,
             gps = gps,
             kmBanner = banner,
         )

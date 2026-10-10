@@ -11,7 +11,7 @@
     <string name="settings_tracking">Tracking</string>
     <string name="settings_auto_pause">Auto-pause</string>
     <string name="settings_countdown">Countdown</string>
-    <string name="settings_countdown_body">3, 2, 1 before the start, with a vibration each second: time to put your phone away.</string>
+    <string name="settings_countdown_body">3, 2, 1 full screen before the start: time to put your phone away.</string>
     <string name="settings_auto_pause_body">The timer stops when you stop (traffic light, photo) and resumes when you move.</string>
     <string name="settings_map">Map</string>
     <string name="settings_online_basemap">Online basemap</string>
@@ -24,4 +24,6 @@
     <string name="settings_motion_calm">Calm</string>
     <string name="settings_motion_expressive_body">Living contour lines, rising titles, counters and routes that draw themselves.</string>
     <string name="settings_motion_calm_body">Motion kept to the essentials: no animated backgrounds, short transitions.</string>
+    <string name="settings_vibrations">Vibrations</string>
+    <string name="settings_vibrations_body">One per countdown second, two at each kilometre: the info without taking out your phone.</string>
 </resources>

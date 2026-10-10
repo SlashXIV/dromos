@@ -24,6 +24,8 @@ interface SettingsRepository {
 
     suspend fun setCountdown(enabled: Boolean)
 
+    suspend fun setVibrations(enabled: Boolean)
+
     val map: Flow<MapPreferences>
 
     suspend fun setOnlineBasemap(enabled: Boolean)

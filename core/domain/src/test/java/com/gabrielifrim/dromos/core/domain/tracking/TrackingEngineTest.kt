@@ -65,6 +65,7 @@ class TrackingEngineTest {
         override suspend fun setAutoPause(enabled: Boolean) { prefs.value = TrackingPreferences(enabled) }
         override suspend fun setBatteryPromptDismissed(dismissed: Boolean) = Unit
         override suspend fun setCountdown(enabled: Boolean) = Unit
+        override suspend fun setVibrations(enabled: Boolean) = Unit
         override val map: Flow<MapPreferences> = MutableStateFlow(MapPreferences())
         override suspend fun setOnlineBasemap(enabled: Boolean) = Unit
     }

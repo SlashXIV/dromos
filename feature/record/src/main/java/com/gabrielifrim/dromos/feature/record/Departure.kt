@@ -134,7 +134,7 @@ fun GpsTelemetry(gps: GpsWarmup) {
  * chiffres disparaît.
  */
 @Composable
-fun Countdown(onDone: () -> Unit, onCancel: () -> Unit) {
+fun Countdown(vibrate: Boolean, onDone: () -> Unit, onCancel: () -> Unit) {
     val haptics = rememberHaptics()
     val animates = LocalMotionLevel.current.animates
     var value by remember { mutableIntStateOf(COUNT_FROM) }
@@ -142,7 +142,7 @@ fun Countdown(onDone: () -> Unit, onCancel: () -> Unit) {
     LaunchedEffect(Unit) {
         for (n in COUNT_FROM downTo 1) {
             value = n
-            haptics.tick()
+            if (vibrate) haptics.tick()
             if (animates) {
                 pop.snapTo(1.35f)
                 pop.animateTo(1f, tween(450, easing = Motion.Release))
@@ -151,7 +151,7 @@ fun Countdown(onDone: () -> Unit, onCancel: () -> Unit) {
                 delay(1000)
             }
         }
-        haptics.confirm()
+        if (vibrate) haptics.confirm()
         onDone()
     }
     val description = stringResource(R.string.record_countdown_a11y, value)

@@ -17,6 +17,7 @@ import android.os.VibratorManager
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import com.gabrielifrim.dromos.core.domain.model.ActivityType
+import com.gabrielifrim.dromos.core.domain.repository.SettingsRepository
 import com.gabrielifrim.dromos.core.domain.tracking.TrackingEvent
 import com.gabrielifrim.dromos.core.domain.tracking.TrackingState
 import com.gabrielifrim.dromos.core.ui.text.Format
@@ -27,6 +28,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.time.Clock
@@ -44,6 +46,7 @@ class TrackingService : Service() {
 
     @Inject lateinit var controller: TrackingController
     @Inject lateinit var clock: Clock
+    @Inject lateinit var settings: SettingsRepository
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var wakeLock: PowerManager.WakeLock? = null
@@ -113,7 +116,7 @@ class TrackingService : Service() {
         controller.events.collect { event ->
             if (event !is TrackingEvent.Kilometer) return@collect
             lastKilometer = event
-            vibrateTwice()
+            if (settings.tracking.first().vibrations) vibrateTwice()
             val active = controller.state.value as? TrackingState.Active ?: return@collect
             getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, buildNotification(active))
         }

@@ -109,6 +109,11 @@ fun SettingsScreen(
                 body = stringResource(R.string.settings_countdown_body),
                 checked = tracking.countdown,
             ) { onAction(SettingsAction.SetCountdown(it)) }
+            SwitchRow(
+                title = stringResource(R.string.settings_vibrations),
+                body = stringResource(R.string.settings_vibrations_body),
+                checked = tracking.vibrations,
+            ) { onAction(SettingsAction.SetVibrations(it)) }
 
             BatteryRow()
 

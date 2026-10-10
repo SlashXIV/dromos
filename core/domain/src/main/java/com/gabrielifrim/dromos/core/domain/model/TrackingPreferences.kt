@@ -7,4 +7,6 @@ data class TrackingPreferences(
     val batteryPromptDismissed: Boolean = false,
     /** Compte à rebours 3-2-1 avant le départ. */
     val countdown: Boolean = true,
+    /** Vibrations du compte à rebours et des kilomètres. */
+    val vibrations: Boolean = true,
 )

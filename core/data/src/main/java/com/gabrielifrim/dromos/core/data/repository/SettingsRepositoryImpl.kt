@@ -53,6 +53,7 @@ internal class SettingsRepositoryImpl @Inject constructor(
                 autoPause = prefs[AUTO_PAUSE] ?: true,
                 batteryPromptDismissed = prefs[BATTERY_PROMPT_DISMISSED] ?: false,
                 countdown = prefs[COUNTDOWN] ?: true,
+                vibrations = prefs[VIBRATIONS] ?: true,
             )
         }
         .distinctUntilChanged()
@@ -67,6 +68,10 @@ internal class SettingsRepositoryImpl @Inject constructor(
 
     override suspend fun setCountdown(enabled: Boolean) {
         dataStore.edit { it[COUNTDOWN] = enabled }
+    }
+
+    override suspend fun setVibrations(enabled: Boolean) {
+        dataStore.edit { it[VIBRATIONS] = enabled }
     }
 
     override val map: Flow<MapPreferences> = dataStore.data
@@ -85,5 +90,6 @@ internal class SettingsRepositoryImpl @Inject constructor(
         val ONLINE_BASEMAP = booleanPreferencesKey("carte_en_ligne")
         val BATTERY_PROMPT_DISMISSED = booleanPreferencesKey("batterie_ne_plus_demander")
         val COUNTDOWN = booleanPreferencesKey("compte_a_rebours")
+        val VIBRATIONS = booleanPreferencesKey("vibrations")
     }
 }

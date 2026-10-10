@@ -164,7 +164,7 @@ fun RecordScreen(
         )
         BackHandler(enabled = counting) { counting = false }
         if (counting) {
-            Countdown(onDone = { counting = false; go() }, onCancel = { counting = false })
+            Countdown(state.vibrations, onDone = { counting = false; go() }, onCancel = { counting = false })
         }
         if (sweeping) StartSweep(onEnd = { sweeping = false })
     }
