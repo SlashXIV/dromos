@@ -1,5 +1,11 @@
 package com.gabrielifrim.dromos.feature.activity
 
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.semantics.setProgress
+import androidx.compose.ui.semantics.stateDescription
+import kotlin.math.roundToInt
 import androidx.compose.ui.semantics.heading
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
@@ -67,22 +73,23 @@ fun Profiles(
     val paces = samples.mapNotNull { it.paceSecondsPerKm }
     if (samples.size < 2 || (!hasElevation && paces.size < 2)) return
     val progress = drawOn(delayMs)
+    val readout = readoutText(samples, cursor, hasElevation)
     Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Readout(samples, cursor, hasElevation)
+        Readout(readout, cursor)
         if (hasElevation) {
             ChartTitle(stringResource(R.string.activity_profile_elevation))
-            ElevationChart(samples, cursor, onCursor, progress)
+            ElevationChart(samples, cursor, onCursor, progress, readout)
         }
         if (paces.size >= 2) {
             ChartTitle(stringResource(R.string.activity_profile_pace))
-            PaceChart(samples, paces.sorted(), averagePace ?: paces.average(), cursor, onCursor, progress)
+            PaceChart(samples, paces.sorted(), averagePace ?: paces.average(), cursor, onCursor, progress, readout)
         }
     }
 }
 
-/** La ligne de lecture : distance, altitude et allure au curseur (ou à l'arrivée sans curseur). */
+/** Distance, altitude et allure au curseur (ou à l'arrivée sans curseur). */
 @Composable
-private fun Readout(samples: List<ProfileSample>, cursor: Int?, hasElevation: Boolean) {
+private fun readoutText(samples: List<ProfileSample>, cursor: Int?, hasElevation: Boolean): String {
     val locale = LocalConfiguration.current.locales[0]
     val sample = samples[cursor ?: samples.lastIndex]
     val parts = buildList {
@@ -90,9 +97,16 @@ private fun Readout(samples: List<ProfileSample>, cursor: Int?, hasElevation: Bo
         sample.elevationMeters?.takeIf { hasElevation }?.let { add(stringResource(R.string.activity_profile_altitude, Format.meters(it))) }
         sample.paceSecondsPerKm?.let { add(stringResource(R.string.activity_profile_pace_value, Format.paceFromSeconds(it))) }
     }
+    return parts.joinToString(" · ")
+}
+
+/** La ligne de lecture ; TalkBack la lit sur les graphiques, où elle est l'état du curseur. */
+@Composable
+private fun Readout(text: String, cursor: Int?) {
     TelemetryLabel(
-        parts.joinToString(" · "),
-        color = if (cursor == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+        text,
+        Modifier.clearAndSetSemantics {},
+        if (cursor == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
     )
 }
 
@@ -102,7 +116,7 @@ private fun ChartTitle(text: String) {
 }
 
 @Composable
-private fun ElevationChart(samples: List<ProfileSample>, cursor: Int?, onCursor: (Int?) -> Unit, progress: Float) {
+private fun ElevationChart(samples: List<ProfileSample>, cursor: Int?, onCursor: (Int?) -> Unit, progress: Float, readout: String) {
     val values = samples.mapNotNull { it.elevationMeters }
     val low = values.min()
     // Au moins 20 m d'amplitude : un parcours plat ne doit pas ressembler à une montagne.
@@ -111,7 +125,7 @@ private fun ElevationChart(samples: List<ProfileSample>, cursor: Int?, onCursor:
     val ring = MaterialTheme.colorScheme.surface
     val description = stringResource(R.string.activity_profile_elevation_a11y, Format.meters(low), Format.meters(values.max()))
     ChartFrame(
-        samples, cursor, onCursor, description,
+        samples, cursor, onCursor, description, readout,
         top = stringResource(UiR.string.unit_meters, Format.meters(high)),
         bottom = stringResource(UiR.string.unit_meters, Format.meters(low)),
     ) { x ->
@@ -134,7 +148,15 @@ private fun ElevationChart(samples: List<ProfileSample>, cursor: Int?, onCursor:
 }
 
 @Composable
-private fun PaceChart(samples: List<ProfileSample>, sorted: List<Double>, average: Double, cursor: Int?, onCursor: (Int?) -> Unit, progress: Float) {
+private fun PaceChart(
+    samples: List<ProfileSample>,
+    sorted: List<Double>,
+    average: Double,
+    cursor: Int?,
+    onCursor: (Int?) -> Unit,
+    progress: Float,
+    readout: String,
+) {
     // Échelle sur les 5e-95e centiles : un arrêt de feu rouge n'écrase pas tout le graphique.
     val fast = sorted[(sorted.size * 0.05).toInt()]
     val slow = sorted[(sorted.size * 0.95).toInt().coerceAtMost(sorted.lastIndex)]
@@ -148,7 +170,7 @@ private fun PaceChart(samples: List<ProfileSample>, sorted: List<Double>, averag
     val ring = MaterialTheme.colorScheme.surface
     val description = stringResource(R.string.activity_profile_pace_a11y, Format.paceFromSeconds(fast), Format.paceFromSeconds(slow))
     ChartFrame(
-        samples, cursor, onCursor, description,
+        samples, cursor, onCursor, description, readout,
         top = stringResource(R.string.activity_profile_faster),
         bottom = stringResource(R.string.activity_profile_slower),
         middle = stringResource(R.string.activity_profile_average, Format.paceFromSeconds(average)),
@@ -187,6 +209,7 @@ private fun ChartFrame(
     cursor: Int?,
     onCursor: (Int?) -> Unit,
     description: String,
+    readout: String,
     top: String,
     bottom: String,
     middle: String? = null,
@@ -207,7 +230,20 @@ private fun ChartFrame(
                 Modifier
                     .fillMaxWidth()
                     .height(CHART_HEIGHT)
-                    .semantics { contentDescription = description }
+                    // Pour TalkBack, un curseur réglable comme un curseur de volume : balayer
+                    // vers le haut ou le bas déplace le point lu, annoncé par son état.
+                    .semantics {
+                        contentDescription = description
+                        stateDescription = readout
+                        progressBarRangeInfo = ProgressBarRangeInfo(
+                            (cursor ?: samples.lastIndex).toFloat(),
+                            0f..samples.lastIndex.toFloat(),
+                        )
+                        setProgress { target ->
+                            onCursor(target.roundToInt().coerceIn(samples.indices))
+                            true
+                        }
+                    }
                     .pointerInput(samples) {
                         detectTapGestures { onCursor(indexAt(it.x, size.width.toFloat())) }
                     }
