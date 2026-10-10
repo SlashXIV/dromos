@@ -85,7 +85,10 @@ fun RisingText(
         val measurer = rememberTextMeasurer()
         val maxWidthPx = constraints.maxWidth
         val fitted = remember(text, style, maxWidthPx) {
-            val width = measurer.measure(text, style, maxLines = 1, softWrap = false).size.width
+            // Animées, les lettres sont posées une à une, sans crénage entre elles : leur
+            // somme dépasse la largeur de la phrase, et la fin du titre était rognée.
+            fun widthOf(part: String) = measurer.measure(part, style, maxLines = 1, softWrap = false).size.width
+            val width = maxOf(widthOf(text), text.sumOf { widthOf(it.toString()) })
             if (maxWidthPx == Constraints.Infinity || width <= maxWidthPx) style
             else style.copy(fontSize = style.fontSize * (maxWidthPx.toFloat() / width) * 0.98f)
         }
