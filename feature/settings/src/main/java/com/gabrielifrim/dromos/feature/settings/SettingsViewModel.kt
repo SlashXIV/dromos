@@ -20,6 +20,7 @@ sealed interface SettingsAction {
     data class SelectThemeMode(val mode: ThemeMode) : SettingsAction
     data class SelectMotion(val motion: MotionPreference) : SettingsAction
     data class SetAutoPause(val enabled: Boolean) : SettingsAction
+    data class SetCountdown(val enabled: Boolean) : SettingsAction
     data class SetOnlineBasemap(val enabled: Boolean) : SettingsAction
 }
 
@@ -44,6 +45,7 @@ class SettingsViewModel @Inject constructor(
                 is SettingsAction.SelectThemeMode -> settings.setThemeMode(action.mode)
                 is SettingsAction.SelectMotion -> settings.setMotion(action.motion)
                 is SettingsAction.SetAutoPause -> settings.setAutoPause(action.enabled)
+                is SettingsAction.SetCountdown -> settings.setCountdown(action.enabled)
                 is SettingsAction.SetOnlineBasemap -> settings.setOnlineBasemap(action.enabled)
             }
         }

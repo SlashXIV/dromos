@@ -10,6 +10,8 @@
     <string name="settings_palette_selected">Selected palette</string>
     <string name="settings_tracking">Tracking</string>
     <string name="settings_auto_pause">Auto-pause</string>
+    <string name="settings_countdown">Countdown</string>
+    <string name="settings_countdown_body">3, 2, 1 before the start, with a vibration each second: time to put your phone away.</string>
     <string name="settings_auto_pause_body">The timer stops when you stop (traffic light, photo) and resumes when you move.</string>
     <string name="settings_map">Map</string>
     <string name="settings_online_basemap">Online basemap</string>

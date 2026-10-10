@@ -5,4 +5,6 @@ data class TrackingPreferences(
     val autoPause: Boolean = true,
     /** « Ne plus demander » choisi sur la fenêtre d'optimisation de batterie. */
     val batteryPromptDismissed: Boolean = false,
+    /** Compte à rebours 3-2-1 avant le départ. */
+    val countdown: Boolean = true,
 )

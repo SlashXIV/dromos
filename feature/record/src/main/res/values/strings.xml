@@ -27,4 +27,12 @@
     <string name="record_status_auto_paused">Pause automatique : le chrono repartira avec toi</string>
     <string name="record_metric_elevation">Dénivelé +</string>
     <string name="record_unit_meters">m</string>
+    <string name="record_ready_line1">Prêt à</string>
+    <string name="record_ready_line2">partir ?</string>
+    <string name="record_gps_off">GPS · en attente d’autorisation</string>
+    <string name="record_gps_searching">GPS · recherche</string>
+    <string name="record_gps_ready">GPS · prêt</string>
+    <string name="record_gps_ready_accuracy">GPS · prêt · %1$d m</string>
+    <string name="record_countdown_cancel">Touche l’écran pour annuler</string>
+    <string name="record_countdown_a11y">Départ dans %1$d</string>
 </resources>

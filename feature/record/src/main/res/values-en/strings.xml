@@ -27,4 +27,12 @@
     <string name="record_status_auto_paused">Auto-paused: the timer resumes when you move</string>
     <string name="record_metric_elevation">Elevation gain</string>
     <string name="record_unit_meters">m</string>
+    <string name="record_ready_line1">Ready to</string>
+    <string name="record_ready_line2">go?</string>
+    <string name="record_gps_off">GPS · waiting for permission</string>
+    <string name="record_gps_searching">GPS · searching</string>
+    <string name="record_gps_ready">GPS · ready</string>
+    <string name="record_gps_ready_accuracy">GPS · ready · %1$d m</string>
+    <string name="record_countdown_cancel">Tap the screen to cancel</string>
+    <string name="record_countdown_a11y">Starting in %1$d</string>
 </resources>

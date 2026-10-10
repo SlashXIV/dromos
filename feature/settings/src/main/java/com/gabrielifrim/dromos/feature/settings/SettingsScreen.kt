@@ -104,6 +104,11 @@ fun SettingsScreen(
                 body = stringResource(R.string.settings_auto_pause_body),
                 checked = tracking.autoPause,
             ) { onAction(SettingsAction.SetAutoPause(it)) }
+            SwitchRow(
+                title = stringResource(R.string.settings_countdown),
+                body = stringResource(R.string.settings_countdown_body),
+                checked = tracking.countdown,
+            ) { onAction(SettingsAction.SetCountdown(it)) }
 
             BatteryRow()
 

@@ -10,6 +10,8 @@
     <string name="settings_palette_selected">Palette sélectionnée</string>
     <string name="settings_tracking">Suivi</string>
     <string name="settings_auto_pause">Pause automatique</string>
+    <string name="settings_countdown">Compte à rebours</string>
+    <string name="settings_countdown_body">3, 2, 1 avant le départ, avec une vibration par seconde : le temps de ranger le téléphone.</string>
     <string name="settings_auto_pause_body">Le chrono s’arrête quand tu t’arrêtes (feu rouge, photo) et repart avec toi.</string>
     <string name="settings_map">Carte</string>
     <string name="settings_online_basemap">Fond de carte en ligne</string>

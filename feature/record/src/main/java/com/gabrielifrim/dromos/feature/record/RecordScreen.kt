@@ -3,6 +3,7 @@ package com.gabrielifrim.dromos.feature.record
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -46,6 +47,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import com.gabrielifrim.dromos.core.ui.motion.RisingText
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -104,37 +107,50 @@ fun RecordScreen(
     onBack: () -> Unit,
 ) {
     var confirmStop by remember { mutableStateOf(false) }
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    val active = state.active
-                    Text(
-                        if (active != null) stringResource(active.type.labelRes)
-                        else stringResource(R.string.record_title),
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.record_back))
-                    }
-                },
-            )
-        },
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-        ) {
-            val active = state.active
-            if (active == null) {
-                IdleContent(state.selectedType, state.batteryPromptDismissed, onAction)
-            } else {
-                ActiveContent(state, active, onAction, onStopRequest = { confirmStop = true })
+    var counting by remember { mutableStateOf(false) }
+    var sweeping by remember { mutableStateOf(false) }
+    val go = {
+        onAction(RecordAction.Start)
+        sweeping = true
+    }
+    Box(Modifier.fillMaxSize()) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = {
+                        val active = state.active
+                        Text(
+                            if (active != null) stringResource(active.type.labelRes)
+                            else stringResource(R.string.record_title),
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.record_back))
+                        }
+                    },
+                )
+            },
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+                    .padding(16.dp),
+            ) {
+                val active = state.active
+                if (active == null) {
+                    IdleContent(state, onAction, onGo = { if (state.countdown) counting = true else go() })
+                } else {
+                    ActiveContent(state, active, onAction, onStopRequest = { confirmStop = true })
+                }
             }
         }
+        BackHandler(enabled = counting) { counting = false }
+        if (counting) {
+            Countdown(onDone = { counting = false; go() }, onCancel = { counting = false })
+        }
+        if (sweeping) StartSweep(onEnd = { sweeping = false })
     }
     if (confirmStop) {
         AlertDialog(
@@ -161,19 +177,25 @@ fun RecordScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun IdleContent(selected: ActivityType, batteryPromptDismissed: Boolean, onAction: (RecordAction) -> Unit) {
+private fun IdleContent(state: RecordUiState, onAction: (RecordAction) -> Unit, onGo: () -> Unit) {
     val context = LocalContext.current
     var askBattery by remember { mutableStateOf(false) }
     // Démarrage effectif, précédé une fois de la fenêtre batterie si Android peut couper l'appli.
     val start = {
-        if (!batteryPromptDismissed && !BatteryOptimization.isUnrestricted(context)) askBattery = true
-        else onAction(RecordAction.Start)
+        if (!state.batteryPromptDismissed && !BatteryOptimization.isUnrestricted(context)) askBattery = true
+        else onGo()
     }
     if (askBattery) {
         BatteryPromptDialog { neverAgain ->
             askBattery = false
             if (neverAgain) onAction(RecordAction.NeverAskBattery)
-            onAction(RecordAction.Start)
+            onGo()
+        }
+    }
+    // Permission déjà accordée : le GPS chauffe pendant que l'on choisit le type de sortie.
+    LaunchedEffect(Unit) {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            onAction(RecordAction.LocationGranted)
         }
     }
     val permissions = buildList {
@@ -186,16 +208,24 @@ private fun IdleContent(selected: ActivityType, batteryPromptDismissed: Boolean,
         // La position précise est indispensable ; la notification ne l'est pas.
         if (result[Manifest.permission.ACCESS_FINE_LOCATION] == true) {
             denied = false
+            onAction(RecordAction.LocationGranted)
             start()
         } else {
             denied = true
         }
     }
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(24.dp, Alignment.CenterVertically),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
+    Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        GpsTelemetry(state.gps)
+        Column {
+            RisingText(stringResource(R.string.record_ready_line1).uppercase(), DromosTheme.type.poster)
+            RisingText(
+                stringResource(R.string.record_ready_line2).uppercase(),
+                DromosTheme.type.poster,
+                color = MaterialTheme.colorScheme.primary,
+                startDelayMs = 300,
+            )
+        }
+        val selected = state.selectedType
         val types = ActivityType.entries
         SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
             types.forEachIndexed { index, type ->
@@ -206,20 +236,24 @@ private fun IdleContent(selected: ActivityType, batteryPromptDismissed: Boolean,
                 ) { FitText(stringResource(type.labelRes)) }
             }
         }
-        Button(
-            onClick = {
-                val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
-                    PackageManager.PERMISSION_GRANTED
-                if (granted) start() else launcher.launch(permissions.toTypedArray())
-            },
-            modifier = Modifier.size(184.dp),
-            shape = CircleShape,
-            contentPadding = PaddingValues(8.dp),
-        ) {
-            FitText(
-                stringResource(R.string.record_start).uppercase(),
-                style = DromosTheme.type.action.copy(fontSize = DromosTheme.type.action.fontSize * 1.05f),
-            )
+        Box(Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+            GpsSonar(state.gps.readiness, Modifier.fillMaxSize())
+            BreathingHalo(START_SIZE, Modifier.size(START_SIZE + 48.dp))
+            Button(
+                onClick = {
+                    val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
+                        PackageManager.PERMISSION_GRANTED
+                    if (granted) start() else launcher.launch(permissions.toTypedArray())
+                },
+                modifier = Modifier.size(START_SIZE),
+                shape = CircleShape,
+                contentPadding = PaddingValues(8.dp),
+            ) {
+                FitText(
+                    stringResource(R.string.record_start).uppercase(),
+                    style = DromosTheme.type.action.copy(fontSize = DromosTheme.type.action.fontSize * 1.25f),
+                )
+            }
         }
         if (denied) {
             Text(
@@ -286,6 +320,8 @@ private fun ActiveContent(
         }
     }
 }
+
+private val START_SIZE = 184.dp
 
 /** En dessous, la carte et les chiffres pleine taille ne tiennent plus ensemble. */
 private val COMPACT_HEIGHT = 600.dp

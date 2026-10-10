@@ -22,6 +22,8 @@ interface SettingsRepository {
 
     suspend fun setBatteryPromptDismissed(dismissed: Boolean)
 
+    suspend fun setCountdown(enabled: Boolean)
+
     val map: Flow<MapPreferences>
 
     suspend fun setOnlineBasemap(enabled: Boolean)
