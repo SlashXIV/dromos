@@ -16,4 +16,4 @@ jobs:
           java-version: 21
       - uses: gradle/actions/setup-gradle@v4
       - name: Tests, lint et APK de debug
-        run: ./gradlew testDebugUnitTest :core:domain:test lintDebug assembleDebug
+        run: ./gradlew testDebugUnitTest :core:domain:test :core:gpx:test checkHardcodedUiText lintDebug assembleDebug

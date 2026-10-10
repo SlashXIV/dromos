@@ -34,7 +34,7 @@ jobs:
           DROMOS_SIGNING_KEYALIAS: ${{ secrets.DROMOS_KEY_ALIAS }}
           DROMOS_SIGNING_KEYPASSWORD: ${{ secrets.DROMOS_KEY_PASSWORD }}
         run: |
-          ./gradlew testDebugUnitTest :core:domain:test assembleRelease
+          ./gradlew testDebugUnitTest :core:domain:test :core:gpx:test assembleRelease
           cp app/build/outputs/apk/release/app-release.apk "Dromos-$GITHUB_REF_NAME.apk"
 
       - name: Créer la release
