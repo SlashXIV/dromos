@@ -8,7 +8,7 @@ plugins {
 
 // Version publiée : la SEULE ligne à modifier lors d'une release.
 // Règle : correctif = patch, nouveau jalon = mineure, 1.0.0 = cahier des charges complet.
-val dromosVersion = "0.9.0"
+val dromosVersion = "0.10.0"
 
 android {
     namespace = "com.gabrielifrim.dromos"
