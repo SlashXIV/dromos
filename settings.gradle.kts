@@ -35,3 +35,5 @@ include(":feature:history")
 include(":feature:settings")
 include(":feature:record")
 include(":feature:activity")
+
+include(":baselineprofile")

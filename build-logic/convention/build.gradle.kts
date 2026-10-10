@@ -42,6 +42,10 @@ gradlePlugin {
             id = "dromos.android.hilt"
             implementationClass = "AndroidHiltConventionPlugin"
         }
+        register("androidTest") {
+            id = "dromos.android.test"
+            implementationClass = "AndroidTestConventionPlugin"
+        }
         register("jvmLibrary") {
             id = "dromos.jvm.library"
             implementationClass = "JvmLibraryConventionPlugin"

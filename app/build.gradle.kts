@@ -4,6 +4,8 @@ plugins {
     id("dromos.android.hilt")
     // Routes de navigation typées : Navigation Compose sérialise les objets de route.
     alias(libs.plugins.kotlin.serialization)
+    // Embarque le baseline profile généré par :baselineprofile dans le build de publication.
+    alias(libs.plugins.baselineprofile)
 }
 
 // Version publiée : la SEULE ligne à modifier lors d'une release.
@@ -74,6 +76,9 @@ dependencies {
     implementation(projects.feature.settings)
     implementation(projects.feature.record)
     implementation(projects.feature.activity)
+
+    implementation(libs.androidx.profileinstaller)
+    baselineProfile(projects.baselineprofile)
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)
