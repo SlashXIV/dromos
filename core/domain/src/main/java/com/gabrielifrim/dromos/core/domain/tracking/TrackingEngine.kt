@@ -13,7 +13,11 @@ import com.gabrielifrim.dromos.core.domain.repository.SettingsRepository
 import com.gabrielifrim.dromos.core.domain.repository.TrackingRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
@@ -57,6 +61,12 @@ class TrackingEngine @Inject constructor(
      */
     val trace: StateFlow<List<List<GeoPoint>>> = _trace.asStateFlow()
 
+    // Sans abonné, l'événement est perdu : il ne décrit qu'un instant.
+    private val _events = MutableSharedFlow<TrackingEvent>(extraBufferCapacity = 8, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+
+    /** Kilomètres franchis et accroches GPS, au moment où ils arrivent. */
+    val events: SharedFlow<TrackingEvent> = _events.asSharedFlow()
+
     private val mutex = Mutex()
     private var accumulator = TrackAccumulator()
     private var autoPause = AutoPauseDetector(ActivityType.RUN)
@@ -65,6 +75,8 @@ class TrackingEngine @Inject constructor(
     private var barometerJob: Job? = null
     private var latestBaro: Pair<Instant, Double>? = null
     private var traceSegment: Int? = null
+    private var kilometers = KilometerCounter()
+    private var awaitingFix = false
 
     @Volatile
     private var autoPauseEnabled = true
@@ -84,6 +96,8 @@ class TrackingEngine @Inject constructor(
         val now = clock.instant()
         val id = repository.createActivity(type, now, autoPauseEnabled)
         accumulator = TrackAccumulator()
+        kilometers = KilometerCounter()
+        awaitingFix = true
         autoPause = AutoPauseDetector(type)
         pending.clear()
         _trace.value = emptyList()
@@ -125,6 +139,7 @@ class TrackingEngine @Inject constructor(
             recovered = false,
             locationError = false,
         )
+        awaitingFix = true
         startSensors()
     }
 
@@ -181,6 +196,7 @@ class TrackingEngine @Inject constructor(
         val activity = repository.findInProgress() ?: return@withLock false
         val points = repository.points(activity.id)
         accumulator = TrackAccumulator.of(points)
+        kilometers = KilometerCounter.resumedAt(accumulator.distanceMeters)
         autoPause = AutoPauseDetector(activity.type)
         pending.clear()
         _trace.value = points.groupBy { it.segment }.toSortedMap().values
@@ -233,6 +249,7 @@ class TrackingEngine @Inject constructor(
     private suspend fun markLocationError() = mutex.withLock {
         val active = _state.value as? TrackingState.Active ?: return@withLock
         _state.value = active.copy(locationError = true)
+        awaitingFix = true
     }
 
     private suspend fun onSample(sample: LocationSample) = mutex.withLock {
@@ -242,6 +259,10 @@ class TrackingEngine @Inject constructor(
         // livrée à l'abonnement. Elle ne décrit pas cette sortie.
         val now = clock.instant()
         if (sample.timestamp < lastResumeOrStart(active).minusSeconds(STALE_TOLERANCE_S)) return@withLock
+        if (awaitingFix) {
+            awaitingFix = false
+            _events.tryEmit(TrackingEvent.GpsFix)
+        }
         val baro = latestBaro?.takeIf { Duration.between(it.first, now) <= BARO_MAX_AGE }?.second
         val point = TrackPoint(
             timestamp = sample.timestamp,
@@ -281,6 +302,7 @@ class TrackingEngine @Inject constructor(
             }
         }
         _state.value = updated
+        kilometers.onProgress(updated.distanceMeters, updated.movingDurationAt(now))?.let { _events.tryEmit(it) }
         if (pending.size >= FLUSH_EVERY_POINTS) flush(updated)
     }
 

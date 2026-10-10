@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -125,6 +126,12 @@ class TrackingEngineTest {
     }
 
     private val TrackingEngine.active get() = state.value as TrackingState.Active
+
+    private fun TestScope.eventsOf(engine: TrackingEngine): List<TrackingEvent> =
+        mutableListOf<TrackingEvent>().also { list ->
+            backgroundScope.launch { engine.events.collect { list += it } }
+            runCurrent()
+        }
 
     @Test
     fun `une sortie complète est enregistrée avec sa distance et sa durée`() = runTest {
@@ -303,5 +310,48 @@ class TrackingEngineTest {
         engine.discard()
         assertThat(engine.state.value).isEqualTo(TrackingState.Idle)
         assertThat(repo.activities).isEmpty()
+    }
+
+    @Test
+    fun `chaque kilomètre franchi est annoncé avec son temps`() = runTest {
+        val engine = engine()
+        val events = eventsOf(engine)
+        engine.start(ActivityType.RUN); runCurrent()
+        move(700, 3.0)
+
+        val kms = events.filterIsInstance<TrackingEvent.Kilometer>()
+        assertThat(kms.map { it.number }).containsExactly(1, 2).inOrder()
+        // 1000 m à 3 m/s ≈ 333 s, à quelques secondes près selon le filtre.
+        kms.forEach { assertThat(it.split!!.seconds).isIn(325L..345L) }
+    }
+
+    @Test
+    fun `l'accroche GPS est annoncée au départ et après chaque reprise, pas à chaque point`() = runTest {
+        val engine = engine()
+        val events = eventsOf(engine)
+        engine.start(ActivityType.RUN); runCurrent()
+        move(10, 3.0)
+        engine.pause(); runCurrent()
+        engine.resume(); runCurrent()
+        move(10, 3.0)
+
+        assertThat(events.filterIsInstance<TrackingEvent.GpsFix>()).hasSize(2)
+    }
+
+    @Test
+    fun `une sortie récupérée ne réannonce pas ses kilomètres`() = runTest {
+        val first = engine()
+        first.start(ActivityType.RUN); runCurrent()
+        move(400, 3.0)
+        first.pause(); runCurrent()
+
+        val engine = engine()
+        val events = eventsOf(engine)
+        engine.recover(); engine.resume(); runCurrent()
+        move(400, 3.0)
+
+        val kms = events.filterIsInstance<TrackingEvent.Kilometer>()
+        assertThat(kms.map { it.number }).containsExactly(2)
+        assertThat(kms.single().split).isNull()
     }
 }
