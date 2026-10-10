@@ -6,8 +6,10 @@ import androidx.core.content.ContextCompat
 import com.gabrielifrim.dromos.core.domain.model.ActivityType
 import com.gabrielifrim.dromos.core.domain.model.GeoPoint
 import com.gabrielifrim.dromos.core.domain.tracking.TrackingEngine
+import com.gabrielifrim.dromos.core.domain.tracking.TrackingEvent
 import com.gabrielifrim.dromos.core.domain.tracking.TrackingState
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -25,6 +27,8 @@ class TrackingController @Inject constructor(
     val state: StateFlow<TrackingState> get() = engine.state
 
     val trace: StateFlow<List<List<GeoPoint>>> get() = engine.trace
+
+    val events: SharedFlow<TrackingEvent> get() = engine.events
 
     suspend fun start(type: ActivityType) {
         engine.start(type)

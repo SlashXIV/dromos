@@ -1,5 +1,10 @@
 package com.gabrielifrim.dromos.core.map
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -17,6 +22,7 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import com.gabrielifrim.dromos.core.domain.model.GeoPoint
+import com.gabrielifrim.dromos.core.ui.motion.LocalMotionLevel
 
 /**
  * Tracé seul, sans fond de carte : utilisé hors-ligne, quand le fond de carte
@@ -28,8 +34,17 @@ fun TraceCanvas(
     traceColor: Color,
     modifier: Modifier = Modifier,
     label: String? = null,
+    pulse: Boolean = false,
 ) {
     val background = MaterialTheme.colorScheme.surfaceContainer
+    // Tête qui pulse (1,6 s) sur le tracé en direct, en ambiance expressive seulement.
+    val beat = if (pulse && LocalMotionLevel.current.decorative) {
+        rememberInfiniteTransition(label = "tête").animateFloat(
+            0f, 1f, infiniteRepeatable(tween(PULSE_MS / 2), RepeatMode.Reverse), label = "tête",
+        ).value
+    } else {
+        0f
+    }
     val casing = MaterialTheme.colorScheme.surface
     Box(modifier) {
         Canvas(Modifier.fillMaxSize()) {
@@ -47,6 +62,7 @@ fun TraceCanvas(
             }
             val last = points.last()
             val center = Offset(projection.x(last), projection.y(last))
+            drawCircle(traceColor.copy(alpha = 0.35f * (1f - beat)), radius = 9.dp.toPx() * (1f + beat), center = center)
             drawCircle(casing, radius = 9.dp.toPx(), center = center)
             drawCircle(traceColor, radius = 6.dp.toPx(), center = center)
         }
@@ -60,3 +76,5 @@ fun TraceCanvas(
         }
     }
 }
+
+private const val PULSE_MS = 1_600

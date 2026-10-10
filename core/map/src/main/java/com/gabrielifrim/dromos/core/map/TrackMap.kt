@@ -144,6 +144,16 @@ fun TrackMap(
                     PropertyFactory.lineJoin(Property.LINE_JOIN_ROUND),
                 ),
             )
+            // Tête lumineuse : halo flou fixe. Pas de pulsation ici, elle obligerait la
+            // carte à se redessiner à chaque image pendant toute la sortie.
+            loaded.addLayer(
+                CircleLayer(POSITION_HALO, POSITION_SOURCE).withProperties(
+                    PropertyFactory.circleRadius(18f),
+                    PropertyFactory.circleColor(traceColor.toArgb()),
+                    PropertyFactory.circleOpacity(0.35f),
+                    PropertyFactory.circleBlur(0.8f),
+                ),
+            )
             loaded.addLayer(
                 CircleLayer(POSITION_LAYER, POSITION_SOURCE).withProperties(
                     PropertyFactory.circleRadius(7f),
@@ -161,6 +171,7 @@ fun TrackMap(
         val s = style ?: return@LaunchedEffect
         s.getLayerAs<LineLayer>(TRACE_LINE)?.setProperties(PropertyFactory.lineColor(traceColor.toArgb()))
         s.getLayerAs<CircleLayer>(POSITION_LAYER)?.setProperties(PropertyFactory.circleColor(traceColor.toArgb()))
+        s.getLayerAs<CircleLayer>(POSITION_HALO)?.setProperties(PropertyFactory.circleColor(traceColor.toArgb()))
     }
 
     LaunchedEffect(style, segments) {
@@ -265,6 +276,7 @@ private const val POSITION_SOURCE = "dromos-position"
 private const val TRACE_CASING = "dromos-trace-casing"
 private const val TRACE_LINE = "dromos-trace-line"
 private const val POSITION_LAYER = "dromos-position"
+private const val POSITION_HALO = "dromos-position-halo"
 private const val FOLLOW_ZOOM = 16.0
 private const val MIN_FOLLOW_ZOOM = 12.0
 private const val CAMERA_MS = 600

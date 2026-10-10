@@ -7,6 +7,8 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Double vibration au passage de chaque kilomètre. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
     <!-- Dialogue « ignorer l'optimisation de batterie » : suivi d'activité physique. -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 

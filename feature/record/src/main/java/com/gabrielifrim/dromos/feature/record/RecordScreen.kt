@@ -7,6 +7,15 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import kotlinx.coroutines.launch
+import com.gabrielifrim.dromos.core.ui.motion.RollingDigits
+import com.gabrielifrim.dromos.core.map.TraceCanvas
+import androidx.compose.ui.graphics.Color
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -146,6 +155,13 @@ fun RecordScreen(
                 }
             }
         }
+        KmBanner(
+            state.kmBanner,
+            Modifier
+                .align(Alignment.TopCenter)
+                .statusBarsPadding()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+        )
         BackHandler(enabled = counting) { counting = false }
         if (counting) {
             Countdown(onDone = { counting = false; go() }, onCancel = { counting = false })
@@ -266,10 +282,10 @@ private fun IdleContent(state: RecordUiState, onAction: (RecordAction) -> Unit, 
 }
 
 /**
- * Écran de course. Les boutons restent toujours visibles en bas ; au-dessus, la carte prend
- * la hauteur que laissent les chiffres. Si chiffres et carte minimale ne tiennent pas
- * ensemble (petit écran, grande police, bandeau de récupération), cette partie défile au
- * lieu d'écraser la carte.
+ * Écran de course en deux pages : les chiffres, puis la carte plein écran. Les boutons
+ * restent en bas des deux pages. Sur la page des chiffres, la miniature du tracé prend la
+ * hauteur qui reste ; si rien ne tient (petit écran, grande police), la page défile.
+ * Une seule carte MapLibre, chargée seulement quand on glisse vers elle.
  */
 @Composable
 private fun ActiveContent(
@@ -278,55 +294,82 @@ private fun ActiveContent(
     onAction: (RecordAction) -> Unit,
     onStopRequest: () -> Unit,
 ) {
-    BoxWithConstraints(Modifier.fillMaxSize()) {
-        val compact = maxHeight < COMPACT_HEIGHT
-        val gap = if (compact) 10.dp else 16.dp
-        val density = LocalDensity.current
-        // Hauteurs mesurées autour de la carte : elle prend le reste.
-        var bannerPx by remember { mutableIntStateOf(0) }
-        var belowPx by remember { mutableIntStateOf(0) }
-        var controlsPx by remember { mutableIntStateOf(0) }
-        val gaps = if (active.recovered) 3 else 2
-        val aroundPx = (if (active.recovered) bannerPx else 0) + belowPx + controlsPx
-        val mapHeight = with(density) { maxHeight - aroundPx.toDp() - gap * gaps }.coerceAtLeast(MAP_MIN_HEIGHT)
-        Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(gap)) {
-            Column(
-                Modifier.weight(1f).verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(gap),
-            ) {
-                if (active.recovered) {
-                    Box(Modifier.onSizeChanged { bannerPx = it.height }) { RecoveredBanner() }
-                }
+    val pager = rememberPagerState { PAGES }
+    val scope = rememberCoroutineScope()
+    val showPage: (Int) -> Unit = { page -> scope.launch { pager.animateScrollToPage(page) } }
+    Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        HorizontalPager(pager, Modifier.weight(1f), key = { it }) { page ->
+            if (page == 0) {
+                NumbersPage(state, active, onShowMap = { showPage(1) })
+            } else {
                 TrackMap(
                     segments = state.trace,
                     traceColor = DromosTheme.metrics.trace,
                     online = state.onlineBasemap,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(mapHeight)
-                        .clip(MaterialTheme.shapes.large),
+                    modifier = Modifier.fillMaxSize().clip(MaterialTheme.shapes.large),
                 )
-                Column(
-                    Modifier.onSizeChanged { belowPx = it.height },
-                    verticalArrangement = Arrangement.spacedBy(gap),
-                ) {
+            }
+        }
+        // La carte capte les glissements : les points ramènent aussi aux chiffres.
+        val switchLabel = stringResource(R.string.record_switch_page)
+        PageDots(
+            PAGES,
+            pager.currentPage,
+            Modifier
+                .align(Alignment.CenterHorizontally)
+                .clickable(onClickLabel = switchLabel) { showPage(1 - pager.currentPage) }
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+        )
+        Controls(active, onAction, onStopRequest)
+    }
+}
+
+@Composable
+private fun NumbersPage(state: RecordUiState, active: TrackingState.Active, onShowMap: () -> Unit) {
+    val stopped = active.paused || active.autoPaused
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val compact = maxHeight < COMPACT_HEIGHT
+        val gap = if (compact) 10.dp else 16.dp
+        val density = LocalDensity.current
+        // Hauteur de tout ce qui précède la miniature : elle prend le reste.
+        var abovePx by remember { mutableIntStateOf(0) }
+        val cardHeight = with(density) { maxHeight - abovePx.toDp() - gap }.coerceAtLeast(MAP_MIN_HEIGHT)
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(gap)) {
+            Column(Modifier.onSizeChanged { abovePx = it.height }, verticalArrangement = Arrangement.spacedBy(gap)) {
+                if (active.recovered) RecoveredBanner()
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.weight(1f)) { RecIndicator(stopped) }
                     GpsStatus(active)
-                    Metrics(active, state.movingDuration, compact, gap)
                 }
+                if (active.autoPaused) {
+                    TelemetryLabel(stringResource(R.string.record_status_auto_paused), color = MaterialTheme.colorScheme.tertiary)
+                }
+                Metrics(active, state.movingDuration, compact, gap, Modifier.desaturate(stopped))
             }
-            Box(Modifier.onSizeChanged { controlsPx = it.height }) {
-                Controls(active, onAction, onStopRequest)
-            }
+            TraceCanvas(
+                segments = state.trace,
+                traceColor = DromosTheme.metrics.trace,
+                label = stringResource(R.string.record_swipe_to_map).uppercase(),
+                pulse = !stopped,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(cardHeight)
+                    .clip(MaterialTheme.shapes.large)
+                    .clickable(onClickLabel = stringResource(R.string.record_switch_page), onClick = onShowMap)
+                    .desaturate(stopped),
+            )
         }
     }
 }
+
+private const val PAGES = 2
 
 private val START_SIZE = 184.dp
 
 /** En dessous, la carte et les chiffres pleine taille ne tiennent plus ensemble. */
 private val COMPACT_HEIGHT = 600.dp
 
-/** Plus petite, la carte ne montre plus assez de tracé pour s'orienter. */
+/** Plus petite, la miniature ne montre plus assez de tracé pour s'orienter. */
 private val MAP_MIN_HEIGHT = 140.dp
 
 @Composable
@@ -340,66 +383,58 @@ private fun RecoveredBanner() {
     }
 }
 
+/** État du signal seulement : la pause, elle, est dite par [RecIndicator]. */
 @Composable
 private fun GpsStatus(active: TrackingState.Active) {
     val text = when {
-        active.paused -> stringResource(R.string.record_status_paused)
-        active.autoPaused -> stringResource(R.string.record_status_auto_paused)
+        active.paused -> return
         active.locationError -> stringResource(R.string.record_status_gps_error)
         active.lastFixAt == null -> stringResource(R.string.record_status_searching)
         else -> active.accuracyMeters?.let { stringResource(R.string.record_status_accuracy, it.toInt()) }
             ?: stringResource(R.string.record_status_ok)
     }
-    val color = when {
-        active.locationError -> MaterialTheme.colorScheme.error
-        active.paused || active.autoPaused -> MaterialTheme.colorScheme.tertiary
-        else -> MaterialTheme.colorScheme.onSurfaceVariant
-    }
+    val color = if (active.locationError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
     TelemetryLabel(text, color = color)
 }
 
 @Composable
-private fun Metrics(active: TrackingState.Active, moving: Duration, compact: Boolean, gap: Dp) {
+private fun Metrics(active: TrackingState.Active, moving: Duration, compact: Boolean, gap: Dp, modifier: Modifier = Modifier) {
     val locale = LocalConfiguration.current.locales[0]
-    val size = if (compact) 38.sp else 48.sp
-    Column(verticalArrangement = Arrangement.spacedBy(gap)) {
+    val size = if (compact) 34.sp else 44.sp
+    val average = if (active.distanceMeters >= 10) moving.seconds * 1000.0 / active.distanceMeters else null
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(gap)) {
         BigMetric(
             label = stringResource(R.string.record_metric_duration),
             value = Format.duration(moving),
-            size = if (compact) 68.sp else 88.sp,
+            size = if (compact) 72.sp else DromosTheme.type.metricHuge.fontSize,
+            rolling = true,
         )
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             BigMetric(
                 label = stringResource(R.string.record_metric_distance),
                 value = Format.kilometers(active.distanceMeters, locale),
                 unit = stringResource(R.string.record_unit_km),
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1.2f),
                 size = size,
+                color = MaterialTheme.colorScheme.primary,
+                rolling = true,
             )
-            BigMetric(
-                label = stringResource(R.string.record_metric_avg_pace),
-                value = Format.pace(moving, active.distanceMeters) ?: PLACEHOLDER,
-                unit = stringResource(R.string.record_unit_pace),
-                modifier = Modifier.weight(1f),
-                size = size,
-            )
-        }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             BigMetric(
                 label = stringResource(R.string.record_metric_current_pace),
                 value = active.currentSpeedMetersPerSecond?.let { Format.paceFromSpeed(it) } ?: PLACEHOLDER,
                 unit = stringResource(R.string.record_unit_pace),
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1.2f),
                 size = size,
             )
             BigMetric(
                 label = stringResource(R.string.record_metric_elevation),
                 value = Format.meters(active.elevationGainMeters),
                 unit = stringResource(R.string.record_unit_meters),
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(0.8f),
                 size = size,
             )
         }
+        PaceGauge(secondsPerKm(active.currentSpeedMetersPerSecond), average)
     }
 }
 
@@ -410,22 +445,25 @@ private fun BigMetric(
     modifier: Modifier = Modifier,
     unit: String? = null,
     size: TextUnit = 48.sp,
+    color: Color = Color.Unspecified,
+    rolling: Boolean = false,
 ) {
     Column(modifier) {
         // Sur une ligne : un libellé qui passe à la ligne décalerait les chiffres de la rangée.
         FitText(label.uppercase(), style = DromosTheme.type.telemetry, color = MaterialTheme.colorScheme.onSurfaceVariant, minFontSize = 8.sp)
         Row(verticalAlignment = Alignment.Bottom) {
-            FitText(
-                value,
-                // Barlow Condensed tabulaire : le chrono ne fait pas danser la ligne à chaque seconde.
-                style = DromosTheme.type.metricLarge.copy(fontSize = size),
-                minFontSize = size * 0.5f,
-                modifier = Modifier.weight(1f, fill = false),
-            )
+            // Barlow Condensed tabulaire : le chrono ne fait pas danser la ligne à chaque seconde.
+            val style = DromosTheme.type.metricLarge.copy(fontSize = size)
+            val valueModifier = Modifier.weight(1f, fill = false)
+            if (rolling) {
+                RollingDigits(value, style, valueModifier, color = color)
+            } else {
+                FitText(value, valueModifier, style = style, color = color, minFontSize = size * 0.5f)
+            }
             if (unit != null) {
                 Text(
                     unit,
-                    modifier = Modifier.padding(start = 6.dp, bottom = 6.dp),
+                    modifier = Modifier.padding(start = 4.dp, bottom = 6.dp),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,

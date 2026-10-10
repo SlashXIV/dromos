@@ -51,6 +51,17 @@ object Format {
         return "%d:%02d".format(s / 60, s % 60)
     }
 
+    /**
+     * Écart d'allure signé : « −0:03 » (plus rapide), « +0:12 » (plus lent).
+     * Vrai signe moins (U+2212) : le trait d'union est trop court à côté des chiffres.
+     */
+    fun paceDelta(delta: Duration): String {
+        val s = delta.seconds
+        val sign = if (s < 0) "−" else "+"
+        val abs = kotlin.math.abs(s)
+        return "%s%d:%02d".format(sign, abs / 60, abs % 60)
+    }
+
     private const val MIN_METERS_FOR_PACE = 10.0
     private const val MIN_SPEED_FOR_PACE = 0.5f
 }

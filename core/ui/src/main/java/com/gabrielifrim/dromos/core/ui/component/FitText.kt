@@ -41,7 +41,7 @@ fun FitText(
     }
     Text(
         text = text,
-        modifier = modifier.clipToBounds().fitWidth(minScale),
+        modifier = modifier.clipToBounds().shrinkToFitWidth(minScale),
         color = color,
         style = resolved,
         maxLines = 1,
@@ -50,7 +50,11 @@ fun FitText(
     )
 }
 
-private fun Modifier.fitWidth(minScale: Float): Modifier = layout { measurable, constraints ->
+/**
+ * Réduit son contenu (une ligne) à la largeur disponible, sans descendre sous [minScale].
+ * Pour un contenu qui n'est pas un simple texte (chiffres qui roulent).
+ */
+fun Modifier.shrinkToFitWidth(minScale: Float = 0f): Modifier = layout { measurable, constraints ->
     // Largeur naturelle sur une ligne : une mesure sans borne renverrait la largeur
     // maximale dès qu'un alignement de texte est actif.
     val natural = measurable.maxIntrinsicWidth(Constraints.Infinity)

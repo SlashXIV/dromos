@@ -5,7 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.gabrielifrim.dromos.core.domain.location.LocationSource
 import com.gabrielifrim.dromos.core.domain.model.ActivityType
 import com.gabrielifrim.dromos.core.domain.model.GeoPoint
+import com.gabrielifrim.dromos.core.domain.model.MapPreferences
+import com.gabrielifrim.dromos.core.domain.model.TrackingPreferences
 import com.gabrielifrim.dromos.core.domain.repository.SettingsRepository
+import com.gabrielifrim.dromos.core.domain.tracking.TrackingEvent
 import com.gabrielifrim.dromos.core.domain.tracking.TrackingState
 import com.gabrielifrim.dromos.core.tracking.TrackingController
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,6 +19,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
@@ -44,6 +49,8 @@ data class RecordUiState(
     val batteryPromptDismissed: Boolean = false,
     val countdown: Boolean = true,
     val gps: GpsWarmup = GpsWarmup(),
+    /** Kilomètre tout juste franchi : le bandeau reste quelques secondes. */
+    val kmBanner: TrackingEvent.Kilometer? = null,
 ) {
     val active: TrackingState.Active? get() = tracking as? TrackingState.Active
     val movingDuration: Duration get() = active?.movingDurationAt(now) ?: Duration.ZERO
@@ -62,6 +69,13 @@ sealed interface RecordAction {
     data object LocationGranted : RecordAction
 }
 
+private data class Extras(
+    val map: MapPreferences,
+    val prefs: TrackingPreferences,
+    val gps: GpsWarmup,
+    val banner: TrackingEvent.Kilometer?,
+)
+
 @HiltViewModel
 class RecordViewModel @Inject constructor(
     private val controller: TrackingController,
@@ -72,6 +86,17 @@ class RecordViewModel @Inject constructor(
 
     private val selectedType = MutableStateFlow(ActivityType.RUN)
     private val locationGranted = MutableStateFlow(false)
+    private val kmBanner = MutableStateFlow<TrackingEvent.Kilometer?>(null)
+
+    init {
+        viewModelScope.launch {
+            controller.events.filterIsInstance<TrackingEvent.Kilometer>().collectLatest {
+                kmBanner.value = it
+                delay(BANNER_MS)
+                kmBanner.value = null
+            }
+        }
+    }
 
     /**
      * GPS allumé sur l'écran de départ seulement (permission accordée, aucune sortie en
@@ -110,8 +135,8 @@ class RecordViewModel @Inject constructor(
         controller.state,
         ticker,
         controller.trace,
-        combine(settings.map, settings.tracking, warmup) { map, prefs, gps -> Triple(map, prefs, gps) },
-    ) { type, tracking, now, trace, (map, prefs, gps) ->
+        combine(settings.map, settings.tracking, warmup, kmBanner, ::Extras),
+    ) { type, tracking, now, trace, (map, prefs, gps, banner) ->
         RecordUiState(
             selectedType = type,
             tracking = tracking,
@@ -121,6 +146,7 @@ class RecordViewModel @Inject constructor(
             batteryPromptDismissed = prefs.batteryPromptDismissed,
             countdown = prefs.countdown,
             gps = gps,
+            kmBanner = banner,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), RecordUiState())
 
@@ -145,6 +171,9 @@ class RecordViewModel @Inject constructor(
 
     private companion object {
         const val TICK_MS = 500L
+
+        /** Temps de lecture du bandeau de kilomètre, d'un coup d'œil en courant. */
+        const val BANNER_MS = 4_000L
 
         /** Précision suffisante pour partir : au-delà, les premiers mètres seraient faux. */
         const val READY_ACCURACY_M = 20f

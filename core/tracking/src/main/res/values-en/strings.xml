@@ -13,4 +13,6 @@
     <string name="battery_prompt_allow">Allow</string>
     <string name="battery_prompt_manufacturer_button">Manufacturer settings</string>
     <string name="battery_prompt_never">Don’t ask again</string>
+    <string name="tracking_notification_km">%1$s · passed km %2$d</string>
+    <string name="tracking_notification_km_split">%1$s · km %2$d in %3$s</string>
 </resources>

@@ -11,9 +11,13 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import com.gabrielifrim.dromos.core.domain.model.ActivityType
+import com.gabrielifrim.dromos.core.domain.tracking.TrackingEvent
 import com.gabrielifrim.dromos.core.domain.tracking.TrackingState
 import com.gabrielifrim.dromos.core.ui.text.Format
 import dagger.hilt.android.AndroidEntryPoint
@@ -44,6 +48,10 @@ class TrackingService : Service() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var wakeLock: PowerManager.WakeLock? = null
     private var watchJob: Job? = null
+    private var eventsJob: Job? = null
+
+    /** Dernier kilomètre franchi, rappelé dans la notification jusqu'au suivant. */
+    private var lastKilometer: TrackingEvent.Kilometer? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -72,6 +80,7 @@ class TrackingService : Service() {
                 .apply { acquire(MAX_WAKE_MS) }
         }
         if (watchJob == null) watchJob = scope.launch { watchState() }
+        if (eventsJob == null) eventsJob = scope.launch { watchEvents() }
         return START_NOT_STICKY
     }
 
@@ -94,6 +103,30 @@ class TrackingService : Service() {
                     getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, buildNotification(active))
                 }
             }
+    }
+
+    /**
+     * Kilomètre franchi : double vibration et rappel dans la notification. C'est le
+     * service, pas l'écran, qui vibre : la plupart des kilomètres passent téléphone en poche.
+     */
+    private suspend fun watchEvents() {
+        controller.events.collect { event ->
+            if (event !is TrackingEvent.Kilometer) return@collect
+            lastKilometer = event
+            vibrateTwice()
+            val active = controller.state.value as? TrackingState.Active ?: return@collect
+            getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, buildNotification(active))
+        }
+    }
+
+    private fun vibrateTwice() {
+        val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            getSystemService(VibratorManager::class.java).defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            getSystemService(Vibrator::class.java)
+        }
+        vibrator?.takeIf { it.hasVibrator() }?.vibrate(VibrationEffect.createWaveform(KM_VIBRATION, -1))
     }
 
     override fun onDestroy() {
@@ -124,7 +157,7 @@ class TrackingService : Service() {
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_dromos)
             .setContentTitle(title)
-            .setContentText(km)
+            .setContentText(lastKilometer?.let { kilometerText(km, it) } ?: km)
             .setContentIntent(openApp())
             .setOngoing(true)
             .setOnlyAlertOnce(true)
@@ -147,6 +180,10 @@ class TrackingService : Service() {
         builder.addAction(0, getString(R.string.tracking_action_stop), action(ACTION_STOP, 3))
         return builder.build()
     }
+
+    private fun kilometerText(distance: String, event: TrackingEvent.Kilometer): String =
+        event.split?.let { getString(R.string.tracking_notification_km_split, distance, event.number, Format.paceFromSeconds(it.seconds.toDouble())) }
+            ?: getString(R.string.tracking_notification_km, distance, event.number)
 
     private fun placeholder(): Notification = NotificationCompat.Builder(this, CHANNEL_ID)
         .setSmallIcon(R.drawable.ic_stat_dromos)
@@ -177,6 +214,9 @@ class TrackingService : Service() {
 
         /** Garde-fou : un verrou oublié ne vide pas la batterie au-delà de 12 h. */
         private const val MAX_WAKE_MS = 12 * 60 * 60 * 1000L
+
+        /** Deux impulsions courtes : reconnaissable sans regarder l'écran. */
+        private val KM_VIBRATION = longArrayOf(0, 120, 110, 120)
 
         fun createChannel(context: Context) {
             val channel = NotificationChannel(

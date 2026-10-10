@@ -33,6 +33,13 @@ class FormatTest {
     }
 
     @Test
+    fun `l'écart d'allure porte un vrai signe`() {
+        assertThat(Format.paceDelta(Duration.ofSeconds(-3))).isEqualTo("−0:03")
+        assertThat(Format.paceDelta(Duration.ofSeconds(72))).isEqualTo("+1:12")
+        assertThat(Format.paceDelta(Duration.ZERO)).isEqualTo("+0:00")
+    }
+
+    @Test
     fun `pas d'allure sans distance`() {
         assertThat(Format.pace(Duration.ofMinutes(3), 0.0)).isNull()
     }

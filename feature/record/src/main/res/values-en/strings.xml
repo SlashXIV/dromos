@@ -35,4 +35,14 @@
     <string name="record_gps_ready_accuracy">GPS · ready · %1$d m</string>
     <string name="record_countdown_cancel">Tap the screen to cancel</string>
     <string name="record_countdown_a11y">Starting in %1$d</string>
+    <string name="record_switch_page">Switch page</string>
+    <string name="record_swipe_to_map">← Swipe: full-screen map</string>
+    <string name="record_rec">Rec</string>
+    <string name="record_paused_label">Paused</string>
+    <string name="record_gauge_faster">Faster</string>
+    <string name="record_gauge_slower">Slower</string>
+    <string name="record_gauge_average">Avg %1$s</string>
+    <string name="record_km_banner">Km %1$02d</string>
+    <string name="record_km_banner_pace">%1$s/km</string>
+    <string name="record_km_banner_delta">%1$s vs avg</string>
 </resources>
