@@ -1,5 +1,8 @@
 package com.gabrielifrim.dromos.feature.history
 
+import android.content.res.Resources
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import com.gabrielifrim.dromos.core.ui.motion.sharedTrace
@@ -27,6 +30,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.outlined.FileOpen
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -36,9 +40,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -46,6 +53,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
@@ -56,6 +64,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gabrielifrim.dromos.core.domain.analysis.WeekSummary
 import com.gabrielifrim.dromos.core.domain.model.Activity
 import com.gabrielifrim.dromos.core.domain.model.ActivityType
+import com.gabrielifrim.dromos.core.gpx.ImportResult
 import com.gabrielifrim.dromos.core.ui.component.EmptyState
 import com.gabrielifrim.dromos.core.ui.component.FitText
 import com.gabrielifrim.dromos.core.ui.motion.CountUp
@@ -83,21 +92,45 @@ fun HistoryRoute(
     viewModel: HistoryViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    HistoryScreen(state, trackingActive, onOpenRecord, onOpenSettings, onOpenActivity, viewModel::setFilter)
+    val resources = LocalResources.current
+    val snackbar = remember { SnackbarHostState() }
+    LaunchedEffect(viewModel) {
+        viewModel.imports.collect { snackbar.showSnackbar(importMessage(it, resources)) }
+    }
+    val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+        viewModel.import(uris)
+    }
+    HistoryScreen(
+        state, trackingActive, snackbar, onOpenRecord, onOpenSettings, onOpenActivity, viewModel::setFilter,
+        onImport = { importLauncher.launch(GPX_MIME_TYPES) },
+    )
 }
+
+// Le type MIME d'un .gpx varie selon l'appareil et l'application d'origine.
+private val GPX_MIME_TYPES = arrayOf("application/gpx+xml", "application/xml", "text/xml", "application/octet-stream")
+
+/** « 2 sorties importées · 1 déjà présente » : seules les parts non nulles. */
+private fun importMessage(result: ImportResult, resources: Resources): String = listOf(
+    R.plurals.history_import_done to result.imported,
+    R.plurals.history_import_duplicates to result.duplicates,
+    R.plurals.history_import_rejected to result.rejected,
+).filter { it.second > 0 }.joinToString(" · ") { (id, count) -> resources.getQuantityString(id, count, count) }
 
 @Composable
 fun HistoryScreen(
     state: HistoryUiState,
     trackingActive: Boolean,
+    snackbar: SnackbarHostState,
     onOpenRecord: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenActivity: (Long) -> Unit,
     onFilter: (ActivityType?) -> Unit,
+    onImport: () -> Unit,
 ) {
     val fabInteraction = remember { MutableInteractionSource() }
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = onOpenRecord,
@@ -130,7 +163,7 @@ fun HistoryScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.fillMaxSize(),
         ) {
-            item(key = "entete") { Header(state.week, onOpenSettings) }
+            item(key = "entete") { Header(state.week, onOpenSettings, onImport) }
             item(key = "filtres") { FilterRow(state.filter, onFilter) }
             when {
                 state.isLoading -> item {
@@ -168,7 +201,7 @@ fun HistoryScreen(
  * signature de Dromos. Le relief s'efface vers le fond pour ne jamais gêner la lecture.
  */
 @Composable
-private fun Header(week: WeekSummary?, onOpenSettings: () -> Unit) {
+private fun Header(week: WeekSummary?, onOpenSettings: () -> Unit, onImport: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     Box(Modifier.fillMaxWidth()) {
         ContourField(
@@ -192,6 +225,9 @@ private fun Header(week: WeekSummary?, onOpenSettings: () -> Unit) {
                         ?: stringResource(R.string.history_eyebrow),
                     modifier = Modifier.weight(1f),
                 )
+                IconButton(onClick = onImport) {
+                    Icon(Icons.Outlined.FileOpen, stringResource(R.string.history_import))
+                }
                 IconButton(onClick = onOpenSettings) {
                     Icon(Icons.Outlined.Settings, stringResource(R.string.history_open_settings))
                 }

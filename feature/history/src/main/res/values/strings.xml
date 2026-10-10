@@ -14,4 +14,17 @@
     <string name="history_week_distance">km</string>
     <string name="history_week_count">Sorties</string>
     <string name="history_week_gain">D+ (m)</string>
+    <string name="history_import">Importer des traces GPX</string>
+    <plurals name="history_import_done">
+        <item quantity="one">%d sortie importée</item>
+        <item quantity="other">%d sorties importées</item>
+    </plurals>
+    <plurals name="history_import_duplicates">
+        <item quantity="one">%d déjà présente</item>
+        <item quantity="other">%d déjà présentes</item>
+    </plurals>
+    <plurals name="history_import_rejected">
+        <item quantity="one">%d illisible ou sans horodatage</item>
+        <item quantity="other">%d illisibles ou sans horodatage</item>
+    </plurals>
 </resources>
