@@ -21,6 +21,9 @@ internal class ElevationTracker {
     var lossMeters = 0.0
         private set
 
+    /** Altitude lissée du moment, pour le profil ; null avant la première mesure. */
+    val smoothedMeters: Double? get() = if (buffer.isEmpty()) null else buffer.average()
+
     private var source: Source? = null
     private val buffer = ArrayDeque<Double>()
     private var reference: Double? = null

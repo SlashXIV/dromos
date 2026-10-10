@@ -33,6 +33,9 @@ class TrackAccumulator {
     val elevationGainMeters: Double get() = elevation.gainMeters
     val elevationLossMeters: Double get() = elevation.lossMeters
 
+    /** Altitude lissée au dernier point retenu (baromètre de préférence). */
+    val altitudeMeters: Double? get() = elevation.smoothedMeters
+
     /** Vitesse estimée à l'instant par le filtre (réactive) : sert à la pause automatique. */
     val instantSpeedMetersPerSecond: Double get() = filter.speed
 
