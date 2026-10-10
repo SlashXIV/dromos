@@ -1,5 +1,6 @@
 package com.gabrielifrim.dromos.core.ui.visual
 
+import android.graphics.Paint
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -18,12 +19,14 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.gabrielifrim.dromos.core.ui.motion.LocalMotionLevel
 import kotlin.math.cos
@@ -65,23 +68,29 @@ fun ContourField(
     }
 
     if (level.decorative) {
+        // Mesure brute de l'accéléromètre, hors état : lue au rythme des images. Écrite
+        // dans l'état à chaque événement, elle redessinait le relief en plus des 24 i/s.
+        val tilt = remember { FloatArray(2) }
         LaunchedEffect(running) {
             if (running == 0f) return@LaunchedEffect
             var last = 0L
             while (true) {
+                // Attendre entre deux images plutôt que se réveiller à chaque rafraîchissement
+                // de l'écran (60 à 120 Hz) pour n'avancer qu'une fois sur trois ou cinq.
+                delay(FRAME_MS)
                 withFrameNanos { now ->
-                    if (now - last >= FRAME_NS) {
-                        val dt = if (last == 0L) 0f else (now - last) / 1e9f
-                        last = now
-                        time += dt
-                        tipX += (tipTargetX - tipX) * 0.12f
-                        tipY += (tipTargetY - tipY) * 0.12f
-                        tipStrength += (tipTarget - tipStrength) * 0.08f
-                    }
+                    val dt = if (last == 0L) 0f else (now - last) / 1e9f
+                    last = now
+                    time += dt
+                    tipX += (tipTargetX - tipX) * 0.12f
+                    tipY += (tipTargetY - tipY) * 0.12f
+                    tipStrength += (tipTarget - tipStrength) * 0.08f
+                    tiltX += (tilt[0] - tiltX) * 0.1f
+                    tiltY += (tilt[1] - tiltY) * 0.1f
                 }
             }
         }
-        TiltEffect { x, y -> tiltX += (x - tiltX) * 0.1f; tiltY += (y - tiltY) * 0.1f }
+        TiltEffect { x, y -> tilt[0] = x; tilt[1] = y }
     }
 
     Canvas(
@@ -108,7 +117,7 @@ fun ContourField(
 }
 
 /** 24 images/s : le relief dérive lentement, l'œil ne voit pas la différence avec 60. */
-private const val FRAME_NS = 41_000_000L
+private const val FRAME_MS = 41L
 
 private data class Bump(val u: Float, val v: Float, val amp: Float, val radius: Float, val su: Float, val sv: Float, val phase: Float)
 
@@ -128,16 +137,18 @@ private fun DrawScope.drawContours(
     val cols = (size.width / cell).toInt() + 2
     val rows = (size.height / cell).toInt() + 2
     val aspect = size.width / size.height
+    // Position des bosses : elle ne dépend que du temps, calculée une fois par image.
+    val bumpU = FloatArray(BUMPS.size) { BUMPS[it].u + sin(t * BUMPS[it].su + BUMPS[it].phase) * 0.12f }
+    val bumpV = FloatArray(BUMPS.size) { BUMPS[it].v + cos(t * BUMPS[it].sv + BUMPS[it].phase) * 0.1f }
     val field = Array(rows) { j ->
         FloatArray(cols) { i ->
             val u = i * cell / size.width + tiltX * 0.05f
             val v = j * cell / size.height + tiltY * 0.05f
             var z = 0f
-            for (b in BUMPS) {
-                val bu = b.u + sin(t * b.su + b.phase) * 0.12f
-                val bv = b.v + cos(t * b.sv + b.phase) * 0.1f
-                val du = (u - bu) * aspect
-                val dv = v - bv
+            for (k in BUMPS.indices) {
+                val b = BUMPS[k]
+                val du = (u - bumpU[k]) * aspect
+                val dv = v - bumpV[k]
                 z += b.amp * exp(-(du * du + dv * dv) / (b.radius * b.radius))
             }
             if (tipStrength > 0.001f) {
@@ -148,35 +159,53 @@ private fun DrawScope.drawContours(
             z + 0.05f * sin(u * 9f + t * 0.2f) * cos(v * 7f - t * 0.15f)
         }
     }
-    val thin = Stroke(width = 1.dp.toPx())
-    val bold = Stroke(width = 1.3.dp.toPx())
-    for (k in 0 until levels) {
-        val threshold = 0.15f + k * 0.11f
-        val path = Path()
-        for (j in 0 until rows - 1) for (i in 0 until cols - 1) {
-            val a = field[j][i]; val b = field[j][i + 1]; val c = field[j + 1][i + 1]; val d = field[j + 1][i]
-            val x0 = i * cell; val y0 = j * cell
-            var n = 0
-            val px = FloatArray(4); val py = FloatArray(4)
-            fun edge(vp: Float, vq: Float, ax: Float, ay: Float, bx: Float, by: Float) {
-                if ((vp < threshold) != (vq < threshold)) {
-                    val f = (threshold - vp) / (vq - vp)
-                    px[n] = ax + (bx - ax) * f; py[n] = ay + (by - ay) * f; n++
+    val inkPaint = strokePaint(ink.copy(alpha = 0.14f), 1.dp.toPx())
+    val accentPaint = strokePaint(accent.copy(alpha = 0.55f), 1.3.dp.toPx())
+    // Segments à plat (x0, y0, x1, y1…) tracés d'un seul appel : en Path de milliers de
+    // petits morceaux, le relief était retriangulé à chaque image par le moteur de rendu.
+    val lines = FloatArray((rows - 1) * (cols - 1) * 8)
+    val px = FloatArray(4)
+    val py = FloatArray(4)
+    drawIntoCanvas { canvas ->
+        for (k in 0 until levels) {
+            val threshold = 0.15f + k * 0.11f
+            var count = 0
+            for (j in 0 until rows - 1) for (i in 0 until cols - 1) {
+                val a = field[j][i]; val b = field[j][i + 1]; val c = field[j + 1][i + 1]; val d = field[j + 1][i]
+                val x0 = i * cell; val y0 = j * cell
+                var n = crossing(a, b, threshold, x0, y0, x0 + cell, y0, px, py, 0)
+                n = crossing(b, c, threshold, x0 + cell, y0, x0 + cell, y0 + cell, px, py, n)
+                n = crossing(c, d, threshold, x0 + cell, y0 + cell, x0, y0 + cell, px, py, n)
+                n = crossing(d, a, threshold, x0, y0 + cell, x0, y0, px, py, n)
+                var s = 0
+                while (s + 1 < n) {
+                    lines[count++] = px[s]; lines[count++] = py[s]
+                    lines[count++] = px[s + 1]; lines[count++] = py[s + 1]
+                    s += 2
                 }
             }
-            edge(a, b, x0, y0, x0 + cell, y0)
-            edge(b, c, x0 + cell, y0, x0 + cell, y0 + cell)
-            edge(c, d, x0 + cell, y0 + cell, x0, y0 + cell)
-            edge(d, a, x0, y0 + cell, x0, y0)
-            var s = 0
-            while (s + 1 < n) {
-                path.moveTo(px[s], py[s]); path.lineTo(px[s + 1], py[s + 1]); s += 2
-            }
+            // Une ligne sur quatre en couleur d'accent, comme une courbe maîtresse.
+            canvas.nativeCanvas.drawLines(lines, 0, count, if (k % 4 == 3) accentPaint else inkPaint)
         }
-        // Une ligne sur quatre en couleur d'accent, comme une courbe maîtresse.
-        if (k % 4 == 3) drawPath(path, accent.copy(alpha = 0.55f), style = bold)
-        else drawPath(path, ink.copy(alpha = 0.14f), style = thin)
     }
+}
+
+/** Point où l'isoligne [threshold] coupe l'arête (a → b) de la case, s'il existe. */
+private fun crossing(
+    vp: Float, vq: Float, threshold: Float, ax: Float, ay: Float, bx: Float, by: Float,
+    px: FloatArray, py: FloatArray, n: Int,
+): Int {
+    if ((vp < threshold) == (vq < threshold)) return n
+    val f = (threshold - vp) / (vq - vp)
+    px[n] = ax + (bx - ax) * f
+    py[n] = ay + (by - ay) * f
+    return n + 1
+}
+
+private fun strokePaint(color: Color, width: Float) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    style = Paint.Style.STROKE
+    strokeWidth = width
+    this.color = color.toArgb()
 }
 
 /** Inclinaison du téléphone (accéléromètre), seulement pendant que l'écran est affiché. */
