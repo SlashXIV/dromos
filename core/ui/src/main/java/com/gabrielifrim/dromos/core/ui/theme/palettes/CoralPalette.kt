@@ -20,9 +20,15 @@ private val Salmon = Color(0xFFFF9B85)
 private val CoralDeep = Color(0xFFB83A2E)
 private val EmeraldDeep = Color(0xFF23804D)
 private val JasmineDeep = Color(0xFF8A6200)
-private val SalmonDeep = Color(0xFFC4462E)
 
 private val Ink = Color(0xFF111315)
+
+// « Plus rapide / plus lent » : une paire froide / chaude, distincte pour les
+// daltoniens (deutéranopie comprise), vérifiée par PaletteContrastTest.
+private val FasterBlue = Color(0xFF3D8FD6)
+private val SlowerOrange = Color(0xFFE8693F)
+private val FasterBlueDeep = Color(0xFF1F6FB2)
+private val SlowerOrangeDeep = Color(0xFFB8542A)
 
 /** Palette « Corail » : énergie chaude et vert de renouveau. Palette par défaut. */
 internal val CoralPalette = DromosPalette(
@@ -42,8 +48,8 @@ internal val CoralPalette = DromosPalette(
         ),
         metrics = MetricColors(
             trace = VibrantCoral,
-            faster = Emerald,
-            slower = Salmon,
+            faster = FasterBlue,
+            slower = SlowerOrange,
             elevation = Jasmine,
             heartRate = VibrantCoral,
         ),
@@ -61,8 +67,8 @@ internal val CoralPalette = DromosPalette(
         ),
         metrics = MetricColors(
             trace = CoralDeep,
-            faster = EmeraldDeep,
-            slower = SalmonDeep,
+            faster = FasterBlueDeep,
+            slower = SlowerOrangeDeep,
             elevation = JasmineDeep,
             heartRate = CoralDeep,
         ),

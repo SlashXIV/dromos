@@ -21,6 +21,12 @@ private val CyanDeep = Color(0xFF006677)
 private val PinkDeep = Color(0xFFB0164F)
 private val AmberDeep = Color(0xFF855400)
 
+// « Plus rapide / plus lent » : une paire froide / chaude, distincte pour les
+// daltoniens (deutéranopie comprise), vérifiée par PaletteContrastTest.
+private val FasterCyan = Color(0xFF20A4C8)
+private val SlowerPink = Color(0xFFE0567F)
+private val FasterCyanDeep = Color(0xFF0079A8)
+
 /**
  * Palette « Nocturne » : pensée pour la course de nuit et les écrans OLED.
  * Citron électrique sur encre : le maximum de lisibilité d'un coup d'œil.
@@ -42,8 +48,8 @@ internal val NocturnePalette = DromosPalette(
         ),
         metrics = MetricColors(
             trace = ElectricLime,
-            faster = ElectricLime,
-            slower = Pink,
+            faster = FasterCyan,
+            slower = SlowerPink,
             elevation = Amber,
             heartRate = Pink,
         ),
@@ -61,7 +67,7 @@ internal val NocturnePalette = DromosPalette(
         ),
         metrics = MetricColors(
             trace = LimeDeep,
-            faster = LimeDeep,
+            faster = FasterCyanDeep,
             slower = PinkDeep,
             elevation = AmberDeep,
             heartRate = PinkDeep,

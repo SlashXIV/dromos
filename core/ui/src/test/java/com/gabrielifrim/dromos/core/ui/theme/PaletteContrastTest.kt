@@ -3,7 +3,9 @@ package com.gabrielifrim.dromos.core.ui.theme
 import androidx.compose.ui.graphics.Color
 import com.google.common.truth.Truth.assertWithMessage
 import org.junit.Test
+import kotlin.math.cbrt
 import kotlin.math.pow
+import kotlin.math.sqrt
 
 /**
  * Garde-fou de lisibilité en extérieur, appliqué à CHAQUE palette du registre :
@@ -55,6 +57,19 @@ class PaletteContrastTest {
         }
     }
 
+    /**
+     * « Plus rapide / plus lent » doivent rester distincts pour les daltoniens :
+     * protanopie et deutéranopie simulées (Machado 2009, sévérité 1), écart OKLab
+     * × 100 d'au moins 8 — le seuil du validateur de palettes de la DA.
+     */
+    @Test
+    fun `plus rapide et plus lent restent distincts pour les daltoniens`() = variants().forEach { (name, v) ->
+        listOf("protan" to PROTAN, "deutan" to DEUTAN).forEach { (kind, matrix) ->
+            val delta = deltaE(simulate(v.metrics.faster, matrix), simulate(v.metrics.slower, matrix))
+            assertWithMessage("$name : faster/slower en $kind, ΔE = %.1f, minimum 8".format(delta)).that(delta).isAtLeast(8.0)
+        }
+    }
+
     @Test
     fun `les identifiants de palette sont uniques`() {
         val ids = Palettes.all.map { it.id }
@@ -71,9 +86,46 @@ class PaletteContrastTest {
         return (hi + 0.05) / (lo + 0.05)
     }
 
+    private fun simulate(c: Color, m: Array<DoubleArray>): DoubleArray {
+        val rgb = doubleArrayOf(srgbToLinear(c.red), srgbToLinear(c.green), srgbToLinear(c.blue))
+        return DoubleArray(3) { i -> (m[i][0] * rgb[0] + m[i][1] * rgb[1] + m[i][2] * rgb[2]).coerceIn(0.0, 1.0) }
+    }
+
+    private fun deltaE(a: DoubleArray, b: DoubleArray): Double {
+        val (la, lb) = oklab(a) to oklab(b)
+        return 100 * sqrt((0..2).sumOf { (la[it] - lb[it]).pow(2) })
+    }
+
+    private fun oklab(rgb: DoubleArray): DoubleArray {
+        val (r, g, b) = Triple(rgb[0], rgb[1], rgb[2])
+        val l = cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b)
+        val m = cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b)
+        val s = cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b)
+        return doubleArrayOf(
+            0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s,
+            1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s,
+            0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s,
+        )
+    }
+
+    private fun srgbToLinear(v: Float): Double = if (v <= 0.04045f) v / 12.92 else ((v + 0.055) / 1.055).pow(2.4)
+
     /** Luminance relative sRGB, définition WCAG. */
     private fun luminance(c: Color): Double {
         fun lin(v: Float): Double = if (v <= 0.03928f) v / 12.92 else ((v + 0.055) / 1.055).pow(2.4)
         return 0.2126 * lin(c.red) + 0.7152 * lin(c.green) + 0.0722 * lin(c.blue)
+    }
+
+    private companion object {
+        val PROTAN = arrayOf(
+            doubleArrayOf(0.152286, 1.052583, -0.204868),
+            doubleArrayOf(0.114503, 0.786281, 0.099216),
+            doubleArrayOf(-0.003882, -0.048116, 1.051998),
+        )
+        val DEUTAN = arrayOf(
+            doubleArrayOf(0.367322, 0.860646, -0.227968),
+            doubleArrayOf(0.280085, 0.672501, 0.047413),
+            doubleArrayOf(-0.011820, 0.042940, 0.968881),
+        )
     }
 }

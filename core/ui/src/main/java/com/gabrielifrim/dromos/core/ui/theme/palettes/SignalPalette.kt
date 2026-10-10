@@ -17,10 +17,16 @@ private val Asphalt = Color(0xFF3A3F45)
 
 private val OrangeDeep = Color(0xFFB23A10)
 private val GlacierDeep = Color(0xFF2D6A8C)
-private val LichenDeep = Color(0xFF3F7A1C)
 private val OchreDeep = Color(0xFF85620A)
 
 private val Ink = Color(0xFF111315)
+
+// « Plus rapide / plus lent » : une paire froide / chaude, distincte pour les
+// daltoniens (deutéranopie comprise), vérifiée par PaletteContrastTest.
+private val FasterBlue = Color(0xFF3D8FD6)
+private val SlowerOrange = Color(0xFFE8693F)
+private val FasterBlueDeep = Color(0xFF1F6FB2)
+private val SlowerOrangeDeep = Color(0xFFB8542A)
 
 /** Palette « Signal » : orange de balisage sur asphalte, plus sobre. */
 internal val SignalPalette = DromosPalette(
@@ -40,8 +46,8 @@ internal val SignalPalette = DromosPalette(
         ),
         metrics = MetricColors(
             trace = SignalOrange,
-            faster = Lichen,
-            slower = Color(0xFFFF9B7A),
+            faster = FasterBlue,
+            slower = SlowerOrange,
             elevation = Ochre,
             heartRate = Color(0xFFFF7A8A),
         ),
@@ -59,8 +65,8 @@ internal val SignalPalette = DromosPalette(
         ),
         metrics = MetricColors(
             trace = OrangeDeep,
-            faster = LichenDeep,
-            slower = Color(0xFFC4462E),
+            faster = FasterBlueDeep,
+            slower = SlowerOrangeDeep,
             elevation = OchreDeep,
             heartRate = Color(0xFFB3263E),
         ),
