@@ -13,7 +13,7 @@ téléphone. Pas de compte, pas de cloud, pas de services Google : tes tracés t
   dénivelé positif et négatif, tracé sur carte.
 - Pause manuelle et automatique, reprise, écran de synthèse en fin de sortie.
 - Historique local, découpage au kilomètre, profils d'élévation et d'allure.
-- Export et import GPX / KML.
+- Export GPX et KML (partage ou fichier), import GPX d’une ou plusieurs traces.
 - Carte OpenStreetMap vectorielle (MapLibre), tracé seul sans réseau.
 
 ## Vie privée
