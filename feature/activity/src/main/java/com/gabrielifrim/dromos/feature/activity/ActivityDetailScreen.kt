@@ -1,5 +1,8 @@
 package com.gabrielifrim.dromos.feature.activity
 
+import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import com.gabrielifrim.dromos.core.ui.motion.screenTransitionRunning
@@ -33,6 +36,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.SaveAlt
+import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -59,6 +68,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -96,7 +106,27 @@ fun ActivityDetailRoute(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     LaunchedEffect(state.deleted) { if (state.deleted) onBack() }
-    ActivityDetailScreen(state, justFinished, viewModel::onAction, onBack)
+    val context = LocalContext.current
+    val snackbar = remember { SnackbarHostState() }
+    val chooserTitle = stringResource(R.string.activity_share_chooser)
+    val savedMessage = stringResource(R.string.activity_export_saved)
+    val failedMessage = stringResource(R.string.activity_export_failed)
+    LaunchedEffect(viewModel) {
+        viewModel.exports.collect { event ->
+            when (event) {
+                is ExportEvent.Share -> {
+                    val send = Intent(Intent.ACTION_SEND)
+                        .setType(event.format.mimeType)
+                        .putExtra(Intent.EXTRA_STREAM, event.uri)
+                        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    context.startActivity(Intent.createChooser(send, chooserTitle))
+                }
+                ExportEvent.Saved -> snackbar.showSnackbar(savedMessage)
+                ExportEvent.Failed -> snackbar.showSnackbar(failedMessage)
+            }
+        }
+    }
+    ActivityDetailScreen(state, justFinished, snackbar, viewModel::onAction, onBack)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -104,10 +134,12 @@ fun ActivityDetailRoute(
 fun ActivityDetailScreen(
     state: ActivityDetailUiState,
     justFinished: Boolean,
+    snackbar: SnackbarHostState,
     onAction: (ActivityDetailAction) -> Unit,
     onBack: () -> Unit,
 ) {
     var editing by rememberSaveable { mutableStateOf(false) }
+    var exportMenu by remember { mutableStateOf(false) }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
     // Curseur des profils : un échantillon, retrouvé sur les graphiques et sur la carte.
     var cursor by rememberSaveable { mutableStateOf<Int?>(null) }
@@ -118,6 +150,12 @@ fun ActivityDetailScreen(
     val ambient = LocalMotionLevel.current
     var sweeping by remember { mutableStateOf(!settled && ambient.decorative) }
     val haptics = rememberHaptics()
+    val exportName = activity?.displayTitle()
+    val saveLaunchers = ExportFormat.entries.associateWith { format ->
+        rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(format.mimeType)) { uri ->
+            if (uri != null && exportName != null) onAction(ActivityDetailAction.Export(format, exportName, uri))
+        }
+    }
     LaunchedEffect(activity != null) {
         if (activity == null || settled) return@LaunchedEffect
         delay(if (ambient.decorative) SWEEP_MS.toLong() else 0L)
@@ -128,6 +166,7 @@ fun ActivityDetailScreen(
     CompositionLocalProvider(LocalMotionLevel provides if (settled && justFinished) MotionLevel.NONE else ambient) {
         Box(Modifier.fillMaxSize().onAnyTouch(enabled = !settled) { settled = true; sweeping = false }) {
             Scaffold(
+                snackbarHost = { SnackbarHost(snackbar) },
                 bottomBar = {
                     if (justFinished) {
                         Button(
@@ -149,6 +188,36 @@ fun ActivityDetailScreen(
                             }
                         },
                         actions = {
+                            Box {
+                                // Les points doivent être chargés : l'analyse l'atteste.
+                                IconButton(onClick = { exportMenu = true }, enabled = activity != null && state.analysis != null) {
+                                    Icon(Icons.Outlined.Share, stringResource(R.string.activity_export))
+                                }
+                                DropdownMenu(expanded = exportMenu, onDismissRequest = { exportMenu = false }) {
+                                    if (activity != null && exportName != null) {
+                                        ExportFormat.entries.forEach { format ->
+                                            DropdownMenuItem(
+                                                text = { Text(stringResource(R.string.activity_share_as, format.name)) },
+                                                leadingIcon = { Icon(Icons.Outlined.Share, contentDescription = null) },
+                                                onClick = {
+                                                    exportMenu = false
+                                                    onAction(ActivityDetailAction.Share(format, exportName))
+                                                },
+                                            )
+                                        }
+                                        ExportFormat.entries.forEach { format ->
+                                            DropdownMenuItem(
+                                                text = { Text(stringResource(R.string.activity_save_as, format.name)) },
+                                                leadingIcon = { Icon(Icons.Outlined.SaveAlt, contentDescription = null) },
+                                                onClick = {
+                                                    exportMenu = false
+                                                    saveLaunchers.getValue(format).launch(exportFileName(activity, format))
+                                                },
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                             IconButton(onClick = { editing = true }, enabled = activity != null) {
                                 Icon(Icons.Outlined.Edit, stringResource(R.string.activity_edit))
                             }

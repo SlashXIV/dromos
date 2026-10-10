@@ -37,4 +37,10 @@
     <string name="activity_profile_average">Avg %1$s</string>
     <string name="activity_profile_elevation_a11y">Elevation profile, from %1$s to %2$s metres. Tap or drag to read a point.</string>
     <string name="activity_profile_pace_a11y">Pace profile, from %1$s to %2$s per kilometre. Tap or drag to read a point.</string>
+    <string name="activity_export">Export</string>
+    <string name="activity_share_as">Share as %1$s</string>
+    <string name="activity_save_as">Save as %1$s…</string>
+    <string name="activity_share_chooser">Share activity</string>
+    <string name="activity_export_saved">File saved</string>
+    <string name="activity_export_failed">Export failed</string>
 </resources>

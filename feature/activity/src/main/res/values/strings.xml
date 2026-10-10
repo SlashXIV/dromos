@@ -37,4 +37,10 @@
     <string name="activity_profile_average">Moy. %1$s</string>
     <string name="activity_profile_elevation_a11y">Profil d’altitude, de %1$s à %2$s mètres. Touche ou glisse pour lire un point.</string>
     <string name="activity_profile_pace_a11y">Profil d’allure, de %1$s à %2$s par kilomètre. Touche ou glisse pour lire un point.</string>
+    <string name="activity_export">Exporter</string>
+    <string name="activity_share_as">Partager en %1$s</string>
+    <string name="activity_save_as">Enregistrer en %1$s…</string>
+    <string name="activity_share_chooser">Partager la sortie</string>
+    <string name="activity_export_saved">Fichier enregistré</string>
+    <string name="activity_export_failed">Export impossible</string>
 </resources>
