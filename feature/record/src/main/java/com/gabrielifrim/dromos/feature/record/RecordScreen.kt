@@ -6,14 +6,19 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -42,17 +47,22 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.sp
@@ -64,6 +74,7 @@ import com.gabrielifrim.dromos.core.domain.tracking.TrackingState
 import com.gabrielifrim.dromos.core.map.TrackMap
 import com.gabrielifrim.dromos.core.tracking.BatteryOptimization
 import com.gabrielifrim.dromos.core.tracking.BatteryPromptDialog
+import com.gabrielifrim.dromos.core.ui.component.FitText
 import com.gabrielifrim.dromos.core.ui.theme.DromosTheme
 import com.gabrielifrim.dromos.core.ui.visual.TelemetryLabel
 import com.gabrielifrim.dromos.core.ui.text.Format
@@ -116,26 +127,12 @@ fun RecordScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             val active = state.active
             if (active == null) {
                 IdleContent(state.selectedType, state.batteryPromptDismissed, onAction)
             } else {
-                if (active.recovered) RecoveredBanner()
-                TrackMap(
-                    segments = state.trace,
-                    traceColor = DromosTheme.metrics.trace,
-                    online = state.onlineBasemap,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(240.dp)
-                        .clip(MaterialTheme.shapes.large),
-                )
-                GpsStatus(active)
-                Metrics(active, state.movingDuration)
-                Spacer(Modifier.weight(1f))
-                Controls(active, onAction, onStopRequest = { confirmStop = true })
+                ActiveContent(state, active, onAction, onStopRequest = { confirmStop = true })
             }
         }
     }
@@ -150,7 +147,8 @@ fun RecordScreen(
                 }
             },
             dismissButton = {
-                Row {
+                // Passe à la ligne plutôt que d'écraser les libellés sur un écran étroit.
+                FlowRow(horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = { confirmStop = false; onAction(RecordAction.Discard) }) {
                         Text(stringResource(R.string.record_discard), color = MaterialTheme.colorScheme.error)
                     }
@@ -205,7 +203,7 @@ private fun IdleContent(selected: ActivityType, batteryPromptDismissed: Boolean,
                     selected = selected == type,
                     onClick = { onAction(RecordAction.SelectType(type)) },
                     shape = SegmentedButtonDefaults.itemShape(index, types.size),
-                ) { Text(stringResource(type.labelRes)) }
+                ) { FitText(stringResource(type.labelRes)) }
             }
         }
         Button(
@@ -218,11 +216,9 @@ private fun IdleContent(selected: ActivityType, batteryPromptDismissed: Boolean,
             shape = CircleShape,
             contentPadding = PaddingValues(8.dp),
         ) {
-            Text(
+            FitText(
                 stringResource(R.string.record_start).uppercase(),
                 style = DromosTheme.type.action.copy(fontSize = DromosTheme.type.action.fontSize * 1.05f),
-                maxLines = 1,
-                softWrap = false,
             )
         }
         if (denied) {
@@ -234,6 +230,68 @@ private fun IdleContent(selected: ActivityType, batteryPromptDismissed: Boolean,
         }
     }
 }
+
+/**
+ * Écran de course. Les boutons restent toujours visibles en bas ; au-dessus, la carte prend
+ * la hauteur que laissent les chiffres. Si chiffres et carte minimale ne tiennent pas
+ * ensemble (petit écran, grande police, bandeau de récupération), cette partie défile au
+ * lieu d'écraser la carte.
+ */
+@Composable
+private fun ActiveContent(
+    state: RecordUiState,
+    active: TrackingState.Active,
+    onAction: (RecordAction) -> Unit,
+    onStopRequest: () -> Unit,
+) {
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val compact = maxHeight < COMPACT_HEIGHT
+        val gap = if (compact) 10.dp else 16.dp
+        val density = LocalDensity.current
+        // Hauteurs mesurées autour de la carte : elle prend le reste.
+        var bannerPx by remember { mutableIntStateOf(0) }
+        var belowPx by remember { mutableIntStateOf(0) }
+        var controlsPx by remember { mutableIntStateOf(0) }
+        val gaps = if (active.recovered) 3 else 2
+        val aroundPx = (if (active.recovered) bannerPx else 0) + belowPx + controlsPx
+        val mapHeight = with(density) { maxHeight - aroundPx.toDp() - gap * gaps }.coerceAtLeast(MAP_MIN_HEIGHT)
+        Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(gap)) {
+            Column(
+                Modifier.weight(1f).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(gap),
+            ) {
+                if (active.recovered) {
+                    Box(Modifier.onSizeChanged { bannerPx = it.height }) { RecoveredBanner() }
+                }
+                TrackMap(
+                    segments = state.trace,
+                    traceColor = DromosTheme.metrics.trace,
+                    online = state.onlineBasemap,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(mapHeight)
+                        .clip(MaterialTheme.shapes.large),
+                )
+                Column(
+                    Modifier.onSizeChanged { belowPx = it.height },
+                    verticalArrangement = Arrangement.spacedBy(gap),
+                ) {
+                    GpsStatus(active)
+                    Metrics(active, state.movingDuration, compact, gap)
+                }
+            }
+            Box(Modifier.onSizeChanged { controlsPx = it.height }) {
+                Controls(active, onAction, onStopRequest)
+            }
+        }
+    }
+}
+
+/** En dessous, la carte et les chiffres pleine taille ne tiennent plus ensemble. */
+private val COMPACT_HEIGHT = 600.dp
+
+/** Plus petite, la carte ne montre plus assez de tracé pour s'orienter. */
+private val MAP_MIN_HEIGHT = 140.dp
 
 @Composable
 private fun RecoveredBanner() {
@@ -265,40 +323,45 @@ private fun GpsStatus(active: TrackingState.Active) {
 }
 
 @Composable
-private fun Metrics(active: TrackingState.Active, moving: Duration) {
+private fun Metrics(active: TrackingState.Active, moving: Duration, compact: Boolean, gap: Dp) {
     val locale = LocalConfiguration.current.locales[0]
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    val size = if (compact) 38.sp else 48.sp
+    Column(verticalArrangement = Arrangement.spacedBy(gap)) {
         BigMetric(
             label = stringResource(R.string.record_metric_duration),
             value = Format.duration(moving),
-            size = 88.sp,
+            size = if (compact) 68.sp else 88.sp,
         )
-        Row(Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             BigMetric(
                 label = stringResource(R.string.record_metric_distance),
                 value = Format.kilometers(active.distanceMeters, locale),
                 unit = stringResource(R.string.record_unit_km),
                 modifier = Modifier.weight(1f),
+                size = size,
             )
             BigMetric(
                 label = stringResource(R.string.record_metric_avg_pace),
                 value = Format.pace(moving, active.distanceMeters) ?: PLACEHOLDER,
                 unit = stringResource(R.string.record_unit_pace),
                 modifier = Modifier.weight(1f),
+                size = size,
             )
         }
-        Row(Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             BigMetric(
                 label = stringResource(R.string.record_metric_current_pace),
                 value = active.currentSpeedMetersPerSecond?.let { Format.paceFromSpeed(it) } ?: PLACEHOLDER,
                 unit = stringResource(R.string.record_unit_pace),
                 modifier = Modifier.weight(1f),
+                size = size,
             )
             BigMetric(
                 label = stringResource(R.string.record_metric_elevation),
                 value = Format.meters(active.elevationGainMeters),
                 unit = stringResource(R.string.record_unit_meters),
                 modifier = Modifier.weight(1f),
+                size = size,
             )
         }
     }
@@ -313,14 +376,14 @@ private fun BigMetric(
     size: TextUnit = 48.sp,
 ) {
     Column(modifier) {
-        TelemetryLabel(label, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        // Sur une ligne : un libellé qui passe à la ligne décalerait les chiffres de la rangée.
+        FitText(label.uppercase(), style = DromosTheme.type.telemetry, color = MaterialTheme.colorScheme.onSurfaceVariant, minFontSize = 8.sp)
         Row(verticalAlignment = Alignment.Bottom) {
-            Text(
+            FitText(
                 value,
-                maxLines = 1,
-                softWrap = false,
                 // Barlow Condensed tabulaire : le chrono ne fait pas danser la ligne à chaque seconde.
                 style = DromosTheme.type.metricLarge.copy(fontSize = size),
+                minFontSize = size * 0.5f,
                 modifier = Modifier.weight(1f, fill = false),
             )
             if (unit != null) {
@@ -339,28 +402,41 @@ private fun BigMetric(
 @Composable
 private fun Controls(active: TrackingState.Active, onAction: (RecordAction) -> Unit, onStopRequest: () -> Unit) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        val button = Modifier.weight(1f).heightIn(min = 64.dp)
         if (active.paused) {
-            Button(onClick = { onAction(RecordAction.Resume) }, modifier = Modifier.weight(1f).height(64.dp), shape = CircleShape) {
-                Icon(Icons.Filled.PlayArrow, contentDescription = null)
-                Text(stringResource(R.string.record_resume).uppercase(), Modifier.padding(start = 8.dp), style = DromosTheme.type.action)
+            Button(onClick = { onAction(RecordAction.Resume) }, modifier = button, shape = CircleShape, contentPadding = ControlPadding) {
+                ControlLabel(Icons.Filled.PlayArrow, stringResource(R.string.record_resume))
             }
         } else {
-            FilledTonalButton(onClick = { onAction(RecordAction.Pause) }, modifier = Modifier.weight(1f).height(64.dp), shape = CircleShape) {
-                Icon(Icons.Filled.Pause, contentDescription = null)
-                Text(stringResource(R.string.record_pause).uppercase(), Modifier.padding(start = 8.dp), style = DromosTheme.type.action)
+            FilledTonalButton(onClick = { onAction(RecordAction.Pause) }, modifier = button, shape = CircleShape, contentPadding = ControlPadding) {
+                ControlLabel(Icons.Filled.Pause, stringResource(R.string.record_pause))
             }
         }
         // Terminer reste secondaire : un geste de fin ne doit pas ressembler au geste principal.
         OutlinedButton(
             onClick = onStopRequest,
-            modifier = Modifier.weight(1f).height(64.dp),
+            modifier = button,
             shape = CircleShape,
+            contentPadding = ControlPadding,
             border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
         ) {
-            Icon(Icons.Filled.Stop, contentDescription = null)
-            Text(stringResource(R.string.record_stop).uppercase(), Modifier.padding(start = 8.dp), style = DromosTheme.type.action)
+            ControlLabel(Icons.Filled.Stop, stringResource(R.string.record_stop))
         }
     }
 }
+
+/**
+ * Icône et libellé d'un bouton de demi-largeur. Syne en capitales est large : sur un
+ * petit écran ou avec une grande police système, le libellé rétrécit plutôt que de se
+ * couper en plein mot (« REPR ENDR E »).
+ */
+@Composable
+private fun ControlLabel(icon: ImageVector, label: String) {
+    Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
+    FitText(label.uppercase(), Modifier.padding(start = 6.dp), style = DromosTheme.type.action, minFontSize = 8.sp)
+}
+
+/** Marges latérales réduites : la place va au libellé, pas au vide autour. */
+private val ControlPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
 
 private const val PLACEHOLDER = "–:––" // texte-technique : tiret d'attente, pas une phrase

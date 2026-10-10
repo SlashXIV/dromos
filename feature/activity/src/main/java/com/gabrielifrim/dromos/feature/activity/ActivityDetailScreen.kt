@@ -56,6 +56,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gabrielifrim.dromos.core.domain.analysis.Split
 import com.gabrielifrim.dromos.core.domain.model.Activity
 import com.gabrielifrim.dromos.core.map.TrackMap
+import com.gabrielifrim.dromos.core.ui.component.FitText
 import com.gabrielifrim.dromos.core.ui.text.Format
 import com.gabrielifrim.dromos.core.ui.text.displayTitle
 import com.gabrielifrim.dromos.core.ui.motion.LocalMotionLevel
@@ -248,7 +249,7 @@ private fun Totals(activity: Activity, modifier: Modifier = Modifier) {
                 row.forEach { (label, value) ->
                     Column(Modifier.weight(1f)) {
                         TelemetryLabel(label, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(value, style = DromosTheme.type.metric.copy(fontSize = DromosTheme.type.metric.fontSize * 1.45f))
+                        FitText(value, style = DromosTheme.type.metric.copy(fontSize = DromosTheme.type.metric.fontSize * 1.45f))
                     }
                 }
             }
@@ -312,8 +313,9 @@ private fun SplitRow(split: Split, index: Int, average: Double?, fastest: Double
         split.index.toString()
     }
     Row(Modifier.fillMaxWidth().height(28.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, Modifier.width(48.dp), style = DromosTheme.type.metric, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(
+        // Colonnes à largeur fixe pour rester alignées : le texte se réduit si la police système est grande.
+        FitText(label, Modifier.width(48.dp), style = DromosTheme.type.metric, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        FitText(
             pace?.let { Format.paceFromSeconds(it) } ?: DASH,
             Modifier.width(72.dp),
             style = DromosTheme.type.metric,
@@ -327,7 +329,7 @@ private fun SplitRow(split: Split, index: Int, average: Double?, fastest: Double
                     .background(color),
             )
         }
-        Text(
+        FitText(
             elevation(split.elevationGainMeters, UiR.string.unit_elevation_gain),
             Modifier.width(56.dp).padding(start = 8.dp),
             style = MaterialTheme.typography.bodySmall,

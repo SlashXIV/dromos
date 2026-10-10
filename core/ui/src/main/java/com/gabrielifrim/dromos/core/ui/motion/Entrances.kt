@@ -24,6 +24,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
+import com.gabrielifrim.dromos.core.ui.component.FitText
 import kotlinx.coroutines.delay
 
 /**
@@ -136,5 +137,5 @@ fun CountUp(
         if (level.decorative) animated.animateTo(value.toFloat(), tween(durationMs, easing = Motion.Enter))
         else animated.snapTo(value.toFloat())
     }
-    Text(format(animated.value.toDouble()), style = style, color = color, modifier = modifier)
+    FitText(format(animated.value.toDouble()), modifier, style = style, color = color)
 }

@@ -49,6 +49,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.gabrielifrim.dromos.core.domain.model.AppearanceSettings
+import com.gabrielifrim.dromos.core.ui.component.FitText
 import com.gabrielifrim.dromos.core.domain.model.MapPreferences
 import com.gabrielifrim.dromos.core.domain.model.MotionPreference
 import com.gabrielifrim.dromos.core.domain.model.ThemeMode
@@ -216,7 +217,7 @@ private fun MotionSelector(current: MotionPreference, onSelect: (MotionPreferenc
                     selected = current == motion,
                     onClick = { onSelect(motion) },
                     shape = SegmentedButtonDefaults.itemShape(index, options.size),
-                ) { Text(stringResource(label)) }
+                ) { FitText(stringResource(label)) }
             }
         }
         Text(
@@ -244,7 +245,7 @@ private fun ThemeModeSelector(current: ThemeMode, onSelect: (ThemeMode) -> Unit)
                 selected = current == mode,
                 onClick = { onSelect(mode) },
                 shape = SegmentedButtonDefaults.itemShape(index, modes.size),
-            ) { Text(stringResource(label)) }
+            ) { FitText(stringResource(label)) }
         }
     }
 }
