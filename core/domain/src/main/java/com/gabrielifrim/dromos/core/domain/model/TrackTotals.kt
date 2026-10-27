@@ -8,4 +8,6 @@ data class TrackTotals(
     val movingDuration: Duration,
     val elevationGainMeters: Double,
     val elevationLossMeters: Double,
+    /** Pas du podomètre ; null sans capteur ou sans autorisation. */
+    val steps: Int? = null,
 )

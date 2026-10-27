@@ -23,4 +23,6 @@ data class Activity(
     val autoPause: Boolean = true,
     /** Tracé simplifié (quelques dizaines de points) pour les miniatures ; null avant calcul. */
     val preview: List<GeoPoint>? = null,
+    /** Pas comptés par le podomètre ; null s'il n'a rien mesuré (import, capteur absent, refus). */
+    val steps: Int? = null,
 )

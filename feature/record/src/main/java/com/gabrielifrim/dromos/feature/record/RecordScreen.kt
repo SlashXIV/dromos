@@ -1,6 +1,7 @@
 package com.gabrielifrim.dromos.feature.record
 
 import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -225,7 +226,12 @@ private fun IdleContent(state: RecordUiState, onAction: (RecordAction) -> Unit, 
         add(Manifest.permission.ACCESS_FINE_LOCATION)
         add(Manifest.permission.ACCESS_COARSE_LOCATION)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) add(Manifest.permission.POST_NOTIFICATIONS)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) add(Manifest.permission.ACTIVITY_RECOGNITION)
     }
+    // Position déjà accordée avant l'arrivée du podomètre : on demande les pas seuls,
+    // et la sortie part quelle que soit la réponse (sans eux, les pas sont estimés).
+    // Android cesse lui-même de demander après deux refus.
+    val stepsLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { start() }
     var denied by remember { mutableStateOf(false) }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
         // La position précise est indispensable ; la notification ne l'est pas.
@@ -266,7 +272,14 @@ private fun IdleContent(state: RecordUiState, onAction: (RecordAction) -> Unit, 
                 onClick = {
                     val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
                         PackageManager.PERMISSION_GRANTED
-                    if (granted) start() else launcher.launch(permissions.toTypedArray())
+                    val stepsMissing = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
+                        ContextCompat.checkSelfPermission(context, Manifest.permission.ACTIVITY_RECOGNITION) !=
+                        PackageManager.PERMISSION_GRANTED
+                    when {
+                        !granted -> launcher.launch(permissions.toTypedArray())
+                        stepsMissing -> stepsLauncher.launch(Manifest.permission.ACTIVITY_RECOGNITION)
+                        else -> start()
+                    }
                 },
                 modifier = Modifier.size(START_SIZE),
                 shape = CircleShape,
@@ -463,6 +476,10 @@ private fun Metrics(active: TrackingState.Active, moving: Duration, compact: Boo
             )
         }
         PaceGauge(secondsPerKm(active.currentSpeedMetersPerSecond), average)
+        active.steps?.let { steps ->
+            val text = pluralStringResource(R.plurals.record_steps, steps, Format.integer(steps, locale))
+            TelemetryLabel(text.uppercase(), Modifier.semantics { contentDescription = text })
+        }
     }
 }
 

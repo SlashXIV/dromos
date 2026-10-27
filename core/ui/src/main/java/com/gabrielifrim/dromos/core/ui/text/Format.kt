@@ -42,6 +42,9 @@ object Format {
         return "%d:%02d".format(secondsPerKm / 60, secondsPerKm % 60)
     }
 
+    /** Entier avec séparateur de milliers de la langue : « 3 600 », « 3,600 ». */
+    fun integer(value: Int, locale: Locale): String = String.format(locale, "%,d", value)
+
     /** Dénivelé arrondi au mètre : « 84 ». */
     fun meters(value: Double): String = Math.round(value).toString()
 

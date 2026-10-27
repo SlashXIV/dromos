@@ -36,6 +36,8 @@ data class ActivityAnalysis(
     val trace: List<List<GeoPoint>>,
     val splits: List<Split>,
     val profile: List<ProfileSample> = emptyList(),
+    /** Pas estimés depuis la distance, quand le podomètre n'a rien mesuré. */
+    val estimatedSteps: Int? = null,
 )
 
 data class ActivityDetailUiState(
@@ -102,6 +104,11 @@ class ActivityDetailViewModel @AssistedInject constructor(
                         .map { segment -> segment.map { GeoPoint(it.latitude, it.longitude) } },
                     splits = ActivityAnalyzer.splits(points, activity.type, activity.autoPause),
                     profile = ProfileBuilder.build(points),
+                    estimatedSteps = if (activity.steps == null) {
+                        ActivityAnalyzer.estimatedSteps(points, activity.type, activity.autoPause)
+                    } else {
+                        null
+                    },
                 )
             }
         }

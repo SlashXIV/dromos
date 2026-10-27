@@ -34,6 +34,8 @@ sealed interface TrackingState {
         val recovered: Boolean = false,
         /** La source GPS a refusé de démarrer (permission retirée, GPS absent). */
         val locationError: Boolean = false,
+        /** Pas du podomètre, pauses exclues ; null tant qu'il n'a rien envoyé. */
+        val steps: Int? = null,
     ) : TrackingState {
 
         /** Durée en mouvement à l'instant [now] : le chrono avance sans attendre un point GPS. */

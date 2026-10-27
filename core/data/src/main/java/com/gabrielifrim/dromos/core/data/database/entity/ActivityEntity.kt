@@ -28,4 +28,6 @@ data class ActivityEntity(
     @ColumnInfo(name = "auto_pause", defaultValue = "1") val autoPause: Boolean = true,
     /** Tracé simplifié encodé (cf. PreviewCodec) ; null tant qu'il n'est pas calculé. */
     @ColumnInfo(name = "preview_polyline") val previewPolyline: String? = null,
+    /** Pas du podomètre ; null sans mesure. */
+    val steps: Int? = null,
 )

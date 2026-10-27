@@ -2,6 +2,7 @@ package com.gabrielifrim.dromos.core.domain.tracking
 
 import com.gabrielifrim.dromos.core.domain.location.BarometerSource
 import com.gabrielifrim.dromos.core.domain.location.LocationSource
+import com.gabrielifrim.dromos.core.domain.location.StepSource
 import com.gabrielifrim.dromos.core.domain.model.Activity
 import com.gabrielifrim.dromos.core.domain.model.ActivityStatus
 import com.gabrielifrim.dromos.core.domain.model.ActivityType
@@ -55,6 +56,11 @@ class TrackingEngineTest {
         override fun altitudes(): Flow<Double> = emptyFlow()
     }
 
+    private class FakeSteps : StepSource {
+        val counter = MutableSharedFlow<Int>()
+        override fun steps(): Flow<Int> = counter
+    }
+
     private class FakeSettings(autoPause: Boolean) : SettingsRepository {
         val prefs = MutableStateFlow(TrackingPreferences(autoPause = autoPause))
         override val appearance: Flow<AppearanceSettings> = MutableStateFlow(AppearanceSettings())
@@ -96,7 +102,7 @@ class TrackingEngineTest {
 
         private fun Activity.withTotals(t: TrackTotals) = copy(
             distanceMeters = t.distanceMeters, movingDuration = t.movingDuration,
-            elevationGainMeters = t.elevationGainMeters, elevationLossMeters = t.elevationLossMeters,
+            elevationGainMeters = t.elevationGainMeters, elevationLossMeters = t.elevationLossMeters, steps = t.steps,
         )
 
         override suspend fun deleteActivity(activityId: Long) {
@@ -111,9 +117,10 @@ class TrackingEngineTest {
     private val clock = FakeClock()
     private val source = FakeLocationSource()
     private val repo = FakeRepository()
+    private val steps = FakeSteps()
 
     private fun TestScope.engine(autoPause: Boolean = false) =
-        TrackingEngine(source, FakeBarometer(), repo, FakeSettings(autoPause), clock, backgroundScope).also { runCurrent() }
+        TrackingEngine(source, FakeBarometer(), steps, repo, FakeSettings(autoPause), clock, backgroundScope).also { runCurrent() }
 
     /** Position courante du coureur, en mètres vers le nord. */
     private var north = 0.0
@@ -168,6 +175,40 @@ class TrackingEngineTest {
         assertThat(engine.active.segment).isEqualTo(1)
         assertThat(engine.active.movingDurationAt(clock.instant())).isEqualTo(Duration.ofSeconds(120))
         assertThat(engine.active.distanceMeters).isWithin(12.0).of(177.0)
+    }
+
+    @Test
+    fun `les pas comptent depuis le départ, pauses exclues, et survivent à la récupération`() = runTest {
+        val engine = engine()
+        engine.start(ActivityType.WALK); runCurrent()
+        assertThat(engine.active.steps).isNull()
+        steps.counter.emit(10_000); runCurrent() // cumul depuis le démarrage du téléphone
+        steps.counter.emit(10_100); runCurrent()
+        assertThat(engine.active.steps).isEqualTo(100)
+        engine.pause(); runCurrent()
+        engine.resume(); runCurrent()
+        steps.counter.emit(12_000); runCurrent() // 1 900 pas faits pendant la pause : ignorés
+        steps.counter.emit(12_050); runCurrent()
+        move(1, 1.5)
+        assertThat(engine.active.steps).isEqualTo(150)
+        engine.pause(); runCurrent()
+
+        val recovered = engine() // le processus meurt : un nouveau moteur repart de la base
+        assertThat(recovered.recover()).isTrue()
+        recovered.resume(); runCurrent()
+        steps.counter.emit(3); runCurrent() // téléphone redémarré : le compteur repart de zéro
+        steps.counter.emit(13); runCurrent()
+        assertThat(recovered.stop()).isEqualTo(1L)
+        assertThat(repo.activities.getValue(1L).steps).isEqualTo(160)
+    }
+
+    @Test
+    fun `sans podomètre, aucun pas n'est enregistré`() = runTest {
+        val engine = engine()
+        engine.start(ActivityType.WALK); runCurrent()
+        move(10, 1.5)
+        engine.stop()
+        assertThat(repo.activities.getValue(1L).steps).isNull()
     }
 
     @Test

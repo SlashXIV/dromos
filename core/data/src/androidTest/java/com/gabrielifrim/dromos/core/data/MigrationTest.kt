@@ -8,6 +8,7 @@ import com.gabrielifrim.dromos.core.data.database.DromosDatabase
 import com.gabrielifrim.dromos.core.data.database.MIGRATION_1_2
 import com.gabrielifrim.dromos.core.data.database.MIGRATION_2_3
 import com.gabrielifrim.dromos.core.data.database.MIGRATION_3_4
+import com.gabrielifrim.dromos.core.data.database.MIGRATION_4_5
 import com.google.common.truth.Truth.assertThat
 import org.junit.Rule
 import org.junit.Test
@@ -105,6 +106,27 @@ class MigrationTest {
             assertThat(c.moveToFirst()).isTrue()
             assertThat(c.isNull(0)).isTrue()
             assertThat(c.getString(1)).isEqualTo("Test")
+        }
+    }
+
+    @Test
+    fun la_migration_4_5_laisse_les_pas_a_estimer() {
+        helper.createDatabase(databaseName, 4).use { db ->
+            db.execSQL(
+                """
+                INSERT INTO activity (id, type, status, started_at, ended_at, distance_m, moving_duration_ms,
+                    elevation_gain_m, elevation_loss_m, title, notes, auto_pause, preview_polyline)
+                VALUES (9, 'WALK', 'FINISHED', 1760000000000, 1760001800000, 2500.0, 1800000, 5.0, 5.0, 'Test', NULL, 1, NULL)
+                """.trimIndent(),
+            )
+        }
+
+        val db = helper.runMigrationsAndValidate(databaseName, 5, true, MIGRATION_4_5)
+
+        db.query("SELECT steps, distance_m FROM activity WHERE id = 9").use { c ->
+            assertThat(c.moveToFirst()).isTrue()
+            assertThat(c.isNull(0)).isTrue()
+            assertThat(c.getDouble(1)).isEqualTo(2500.0)
         }
     }
 }

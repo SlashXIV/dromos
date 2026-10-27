@@ -7,6 +7,7 @@ import com.gabrielifrim.dromos.core.domain.tracking.AutoPauseDetector
 import com.gabrielifrim.dromos.core.domain.tracking.TrackAccumulator
 import java.time.Duration
 import java.time.Instant
+import kotlin.math.roundToInt
 
 /**
  * Analyse d'une sortie terminée, depuis ses points bruts.
@@ -77,6 +78,10 @@ object ActivityAnalyzer {
             elevationLossMeters = intervals.sumOf { it.loss },
         )
     }
+
+    /** Pas estimés, intervalle par intervalle, quand le podomètre n'a rien mesuré. */
+    fun estimatedSteps(points: List<TrackPoint>, type: ActivityType, autoPause: Boolean): Int =
+        replay(points, type, autoPause).sumOf { StepEstimator.steps(it.distance, it.seconds) }.roundToInt()
 
     private fun replay(points: List<TrackPoint>, type: ActivityType, autoPause: Boolean): List<Interval> {
         val accumulator = TrackAccumulator()

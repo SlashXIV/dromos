@@ -39,8 +39,18 @@ internal val MIGRATION_3_4 = object : Migration(3, 4) {
     }
 }
 
+/**
+ * v4 → v5 : pas du podomètre. Les sorties existantes restent à null : le détail
+ * les estime depuis la distance et la vitesse.
+ */
+internal val MIGRATION_4_5 = object : Migration(4, 5) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE activity ADD COLUMN steps INTEGER")
+    }
+}
+
 /** Migrations explicites, dans l'ordre. */
-internal val DROMOS_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+internal val DROMOS_MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
 
 /**
  * Configuration de la base, définie une seule fois : les tests instrumentés

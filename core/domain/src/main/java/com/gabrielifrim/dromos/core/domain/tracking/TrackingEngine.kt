@@ -4,6 +4,7 @@ import com.gabrielifrim.dromos.core.domain.ApplicationScope
 import com.gabrielifrim.dromos.core.domain.geo.TraceSimplifier
 import com.gabrielifrim.dromos.core.domain.location.BarometerSource
 import com.gabrielifrim.dromos.core.domain.location.LocationSource
+import com.gabrielifrim.dromos.core.domain.location.StepSource
 import com.gabrielifrim.dromos.core.domain.model.ActivityType
 import com.gabrielifrim.dromos.core.domain.model.GeoPoint
 import com.gabrielifrim.dromos.core.domain.model.LocationSample
@@ -45,6 +46,7 @@ import javax.inject.Singleton
 class TrackingEngine @Inject constructor(
     private val locationSource: LocationSource,
     private val barometerSource: BarometerSource,
+    private val stepSource: StepSource,
     private val repository: TrackingRepository,
     private val settings: SettingsRepository,
     private val clock: Clock,
@@ -74,6 +76,13 @@ class TrackingEngine @Inject constructor(
     private var locationJob: Job? = null
     private var barometerJob: Job? = null
     private var latestBaro: Pair<Instant, Double>? = null
+    private var stepJob: Job? = null
+
+    /** Pas des périodes déjà closes ; null tant que le podomètre n'a rien envoyé. */
+    private var stepsBase: Int? = null
+
+    /** Valeur du podomètre au début de la période en cours. */
+    private var stepsAnchor: Int? = null
     private var traceSegment: Int? = null
     private var kilometers = KilometerCounter()
     private var awaitingFix = false
@@ -97,6 +106,7 @@ class TrackingEngine @Inject constructor(
         val id = repository.createActivity(type, now, autoPauseEnabled)
         accumulator = TrackAccumulator()
         kilometers = KilometerCounter()
+        stepsBase = null
         awaitingFix = true
         autoPause = AutoPauseDetector(type)
         pending.clear()
@@ -197,6 +207,7 @@ class TrackingEngine @Inject constructor(
         val points = repository.points(activity.id)
         accumulator = TrackAccumulator.of(points)
         kilometers = KilometerCounter.resumedAt(accumulator.distanceMeters)
+        stepsBase = activity.steps
         autoPause = AutoPauseDetector(activity.type)
         pending.clear()
         _trace.value = points.groupBy { it.segment }.toSortedMap().values
@@ -218,6 +229,7 @@ class TrackingEngine @Inject constructor(
             elevationGainMeters = accumulator.elevationGainMeters,
             elevationLossMeters = accumulator.elevationLossMeters,
             recovered = true,
+            steps = activity.steps,
         )
         true
     }
@@ -237,6 +249,14 @@ class TrackingEngine @Inject constructor(
                 .catch { }
                 .collect { latestBaro = clock.instant() to it }
         }
+        stepJob?.cancel()
+        stepsAnchor = null
+        stepJob = scope.launch {
+            // Pas de podomètre ou autorisation refusée : le détail estimera les pas.
+            stepSource.steps()
+                .catch { }
+                .collect { onSteps(it) }
+        }
     }
 
     private fun stopSensors() {
@@ -244,6 +264,17 @@ class TrackingEngine @Inject constructor(
         locationJob = null
         barometerJob?.cancel()
         barometerJob = null
+        stepJob?.cancel()
+        stepJob = null
+        stepsBase = (_state.value as? TrackingState.Active)?.steps
+    }
+
+    private suspend fun onSteps(counter: Int) = mutex.withLock {
+        val active = _state.value as? TrackingState.Active ?: return@withLock
+        if (active.paused) return@withLock
+        // Compteur remis à zéro (redémarrage du téléphone) : nouvelle référence.
+        val anchor = stepsAnchor?.takeIf { it <= counter } ?: counter.also { stepsAnchor = it }
+        _state.value = active.copy(steps = (stepsBase ?: 0) + counter - anchor)
     }
 
     private suspend fun markLocationError() = mutex.withLock {
@@ -342,6 +373,7 @@ class TrackingEngine @Inject constructor(
         movingDuration = movingDurationAt(now),
         elevationGainMeters = elevationGainMeters,
         elevationLossMeters = elevationLossMeters,
+        steps = steps,
     )
 
     companion object {

@@ -23,6 +23,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -302,7 +304,7 @@ fun ActivityDetailScreen(
                         }
                     }
                     if (!justFinished) profiles()
-                    item { Totals(activity, Modifier.riseIn(baseDelayMs = if (justFinished && ambient.decorative) 1_400 else 250), counting = justFinished) }
+                    item { Totals(activity, state.analysis?.estimatedSteps, Modifier.riseIn(baseDelayMs = if (justFinished && ambient.decorative) 1_400 else 250), counting = justFinished) }
                     if (justFinished) profiles()
                     activity.notes?.let { notes -> item { NotesCard(notes) } }
                     val splits = state.analysis?.splits.orEmpty()
@@ -398,12 +400,15 @@ private fun PosterTitle(activity: Activity) {
 }
 
 @Composable
-private fun Totals(activity: Activity, modifier: Modifier = Modifier, counting: Boolean = false) {
+private fun Totals(activity: Activity, estimatedSteps: Int?, modifier: Modifier = Modifier, counting: Boolean = false) {
     val locale = LocalConfiguration.current.locales[0]
     if (counting) {
-        CountingTotals(activity, modifier)
+        CountingTotals(activity, estimatedSteps, modifier)
         return
     }
+    val steps = stepsText(activity, estimatedSteps)
+    val stepsLabel = stringResource(R.string.activity_steps)
+    val stepsA11y = stepsA11y(activity, estimatedSteps)
     val elapsed = activity.endedAt?.let { Duration.between(activity.startedAt, it) }
     val stats = buildList {
         add(stringResource(R.string.activity_distance) to stringResource(UiR.string.unit_km, Format.kilometers(activity.distanceMeters, locale)))
@@ -415,16 +420,21 @@ private fun Totals(activity: Activity, modifier: Modifier = Modifier, counting: 
         add(stringResource(R.string.activity_elapsed_time) to (elapsed?.let { Format.duration(it) } ?: DASH))
         add(stringResource(R.string.activity_gain) to elevation(activity.elevationGainMeters, UiR.string.unit_elevation_gain))
         add(stringResource(R.string.activity_loss) to elevation(activity.elevationLossMeters, UiR.string.unit_elevation_loss))
+        steps?.let { add(stepsLabel to it) }
     }
     Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         stats.chunked(2).forEach { row ->
             Row(Modifier.fillMaxWidth()) {
                 row.forEach { (label, value) ->
-                    Column(Modifier.weight(1f).semantics(mergeDescendants = true) {}) {
+                    val a11y = stepsA11y?.takeIf { label == stepsLabel }
+                    val semantics = if (a11y != null) Modifier.clearAndSetSemantics { contentDescription = a11y } else Modifier.semantics(mergeDescendants = true) {}
+                    Column(Modifier.weight(1f).then(semantics)) {
                         TelemetryLabel(label, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         FitText(value, style = DromosTheme.type.metric.copy(fontSize = DromosTheme.type.metric.fontSize * 1.45f))
                     }
                 }
+                // Case seule en fin de grille : elle garde la largeur d'une colonne.
+                if (row.size == 1) Spacer(Modifier.weight(1f))
             }
         }
     }
@@ -435,7 +445,7 @@ private fun Totals(activity: Activity, modifier: Modifier = Modifier, counting: 
  * depuis zéro ; allure et dénivelé en dessous.
  */
 @Composable
-private fun CountingTotals(activity: Activity, modifier: Modifier) {
+private fun CountingTotals(activity: Activity, estimatedSteps: Int?, modifier: Modifier) {
     val locale = LocalConfiguration.current.locales[0]
     val big = DromosTheme.type.metricLarge
     val medium = DromosTheme.type.metricLarge.copy(fontSize = DromosTheme.type.metricLarge.fontSize * 0.75f)
@@ -468,7 +478,33 @@ private fun CountingTotals(activity: Activity, modifier: Modifier) {
                 )
             }
         }
+        stepsText(activity, estimatedSteps)?.let { steps ->
+            val a11y = stepsA11y(activity, estimatedSteps)
+            val semantics = if (a11y != null) Modifier.clearAndSetSemantics { contentDescription = a11y } else Modifier
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                TotalCell(stringResource(R.string.activity_steps), Modifier.weight(1f).then(semantics)) { FitText(steps, style = medium) }
+                Spacer(Modifier.weight(1f))
+            }
+        }
     }
+}
+
+/** Pas du podomètre, sinon « ≈ 680 » estimés depuis la distance ; null sans l'un ni l'autre. */
+@Composable
+private fun stepsText(activity: Activity, estimatedSteps: Int?): String? {
+    val locale = LocalConfiguration.current.locales[0]
+    activity.steps?.let { return Format.integer(it, locale) }
+    val estimate = estimatedSteps?.takeIf { it > 0 } ?: return null
+    return stringResource(R.string.activity_steps_estimated, Format.integer(estimate, locale))
+}
+
+/** « Environ 680 pas, estimés depuis la distance » : « ≈ » ne se lit pas bien à voix haute. */
+@Composable
+private fun stepsA11y(activity: Activity, estimatedSteps: Int?): String? {
+    if (activity.steps != null) return null
+    val estimate = estimatedSteps?.takeIf { it > 0 } ?: return null
+    val locale = LocalConfiguration.current.locales[0]
+    return pluralStringResource(R.plurals.activity_steps_estimated_a11y, estimate, Format.integer(estimate, locale))
 }
 
 @Composable

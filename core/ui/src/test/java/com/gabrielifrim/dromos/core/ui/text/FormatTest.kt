@@ -14,6 +14,13 @@ class FormatTest {
     }
 
     @Test
+    fun `les entiers prennent le séparateur de milliers de la langue`() {
+        assertThat(Format.integer(3_600, Locale.UK)).isEqualTo("3,600")
+        // Espace insécable, fine ou non selon la version du JDK : seule sa présence compte.
+        assertThat(Format.integer(3_600, Locale.FRANCE)).matches("3[\u00A0\u202F ]600")
+    }
+
+    @Test
     fun `la durée n'affiche les heures que si nécessaire`() {
         assertThat(Format.duration(Duration.ofSeconds(52 * 60 + 9))).isEqualTo("52:09")
         assertThat(Format.duration(Duration.ofSeconds(3600 + 5 * 60 + 3))).isEqualTo("1:05:03")

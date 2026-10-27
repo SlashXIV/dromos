@@ -34,14 +34,14 @@ interface ActivityDao {
 
     @Query(
         "UPDATE activity SET distance_m = :distanceMeters, moving_duration_ms = :movingDurationMillis, " +
-            "elevation_gain_m = :gain, elevation_loss_m = :loss WHERE id = :id",
+            "elevation_gain_m = :gain, elevation_loss_m = :loss, steps = :steps WHERE id = :id",
     )
-    suspend fun updateProgress(id: Long, distanceMeters: Double, movingDurationMillis: Long, gain: Double, loss: Double)
+    suspend fun updateProgress(id: Long, distanceMeters: Double, movingDurationMillis: Long, gain: Double, loss: Double, steps: Int?)
 
     @Query(
         "UPDATE activity SET status = :status, ended_at = :endedAtMillis, distance_m = :distanceMeters, " +
-            "moving_duration_ms = :movingDurationMillis, elevation_gain_m = :gain, elevation_loss_m = :loss " +
-            "WHERE id = :id",
+            "moving_duration_ms = :movingDurationMillis, elevation_gain_m = :gain, elevation_loss_m = :loss, " +
+            "steps = :steps WHERE id = :id",
     )
     suspend fun finish(
         id: Long,
@@ -51,6 +51,7 @@ interface ActivityDao {
         movingDurationMillis: Long,
         gain: Double,
         loss: Double,
+        steps: Int?,
     )
 
     @Query("DELETE FROM activity WHERE id = :id")

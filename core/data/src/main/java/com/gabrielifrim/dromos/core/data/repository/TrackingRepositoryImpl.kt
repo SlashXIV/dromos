@@ -52,6 +52,7 @@ internal class TrackingRepositoryImpl @Inject constructor(
                 movingDurationMillis = totals.movingDuration.toMillis(),
                 gain = totals.elevationGainMeters,
                 loss = totals.elevationLossMeters,
+                steps = totals.steps,
             )
         }
     }
@@ -66,6 +67,7 @@ internal class TrackingRepositoryImpl @Inject constructor(
                 movingDurationMillis = totals.movingDuration.toMillis(),
                 gain = totals.elevationGainMeters,
                 loss = totals.elevationLossMeters,
+                steps = totals.steps,
             )
             activityDao.updatePreview(activityId, PreviewCodec.encode(preview))
         }

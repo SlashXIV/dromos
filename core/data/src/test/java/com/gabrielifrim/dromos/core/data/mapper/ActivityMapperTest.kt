@@ -24,6 +24,7 @@ class ActivityMapperTest {
             elevationLossMeters = 81.5,
             title = "Sortie du dimanche",
             notes = null,
+            steps = 12_480,
         )
         assertThat(activity.toEntity().toDomain()).isEqualTo(activity)
     }

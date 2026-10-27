@@ -53,4 +53,8 @@
     <string name="record_km_a11y_full">Kilometre %1$d in %2$s, %3$s versus average</string>
     <string name="record_page_a11y" tools:ignore="PluralsCandidate">Page %1$d of %2$d</string>
     <string name="record_countdown_cancel_a11y">cancel the start</string>
+    <plurals name="record_steps">
+        <item quantity="one">%1$s step</item>
+        <item quantity="other">%1$s steps</item>
+    </plurals>
 </resources>

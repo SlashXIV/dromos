@@ -46,4 +46,10 @@
     <string name="activity_split_a11y">Kilometre %1$s: %2$s per kilometre, %3$s</string>
     <string name="activity_split_a11y_faster">Kilometre %1$s: %2$s per kilometre, faster than average, %3$s</string>
     <string name="activity_split_a11y_slower">Kilometre %1$s: %2$s per kilometre, slower than average, %3$s</string>
+    <string name="activity_steps">Steps</string>
+    <string name="activity_steps_estimated">≈ %1$s</string>
+    <plurals name="activity_steps_estimated_a11y">
+        <item quantity="one">About %1$s step, estimated from distance</item>
+        <item quantity="other">About %1$s steps, estimated from distance</item>
+    </plurals>
 </resources>
